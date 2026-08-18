@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<title>Fiche intervention – v5.5</title>
+<title>Fiche intervention – v5.6</title>
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#173a63">
 <link rel="icon" href="icon-192.png">
@@ -208,7 +208,7 @@
 <div class="page">
   <div class="hdr">
     <div id="entete"></div>
-    <div class="hdr-title">Fiche d'intervention<span id="appver">v5.5</span></div>
+    <div class="hdr-title">Fiche d'intervention<span id="appver">v5.6</span></div>
   </div>
 
   <!-- Barre de dictée -->
@@ -419,11 +419,14 @@
   function splitPatientLabelAdia(label){
     var toks=String(label||"").trim().split(/\s+/).filter(Boolean);
     if(!toks.length) return {nom:"",prenom:""};
-    var nom=[], i=0;
-    while(i<toks.length && toks[i]===toks[i].toUpperCase() && /[A-ZÀ-Ý]/.test(toks[i])){ nom.push(toks[i]); i++; }
-    if(!nom.length){ nom.push(toks[0]); i=1; }
-    var prenom=toks.slice(i);
-    if(!prenom.length && nom.length>1){ prenom=[nom.pop()]; }   // « DUPONT JEAN » -> nom DUPONT, prénom JEAN
+    // Convention des logiciels dentaires : le NOM est en MAJUSCULES, le prénom
+    // en casse normale. On repère le(s) token(s) tout-majuscules comme nom,
+    // OÙ QU'ILS SOIENT (« Agnes HEUILLARD » comme « HEUILLARD Agnes »).
+    function isUpper(t){ return /[A-ZÀ-Ý]/.test(t) && t===t.toUpperCase() && t!==t.toLowerCase(); }
+    var nom=[], prenom=[];
+    toks.forEach(function(t){ (isUpper(t)?nom:prenom).push(t); });
+    if(!nom.length){ nom=[toks[0]]; prenom=toks.slice(1); }        // aucun tout-majuscules : 1er = nom
+    if(!prenom.length && nom.length>1){ prenom=[nom.pop()]; }       // « DUPONT JEAN » -> nom DUPONT, prénom JEAN
     return {nom:nom.join(" "), prenom:prenom.join(" ")};
   }
   function applyAdiaPatient(){
@@ -1800,7 +1803,7 @@
   function withTimeout(p, ms){ return Promise.race([p, new Promise(function(_,rej){ setTimeout(function(){ rej({name:"TimeoutError"}); }, ms); })]); }
   async function toggleRecord(btn){
     if(recording){ rec && rec.stop(); return; }
-    setMsg("① Démarrage… (v5.5)");                       // preuve immédiate que le clic est pris
+    setMsg("① Démarrage… (v5.6)");                       // preuve immédiate que le clic est pris
     btn.textContent="⏳ Préparation…";
     if(!navigator.mediaDevices || !window.MediaRecorder){ setMsg("Ce navigateur ne gère pas le micro. Ouvrez la fiche dans Chrome ou Edge.",true); btn.textContent="🎤 Dicter la fiche"; return; }
     // Micro D'ABORD, tant que le clic est "frais" (sinon le navigateur bloque
