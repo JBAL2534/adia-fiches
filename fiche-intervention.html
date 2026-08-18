@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<title>Fiche intervention – v5.7</title>
+<title>Fiche intervention – v5.8</title>
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#173a63">
 <link rel="icon" href="icon-192.png">
@@ -208,7 +208,7 @@
 <div class="page">
   <div class="hdr">
     <div id="entete"></div>
-    <div class="hdr-title">Fiche d'intervention<span id="appver">v5.7</span></div>
+    <div class="hdr-title">Fiche d'intervention<span id="appver">v5.8</span></div>
   </div>
 
   <!-- Barre de dictée -->
@@ -408,6 +408,19 @@
       ov.remove(); renderEntete();
     };
   }
+  // Pré-configuration de l'en-tête par l'adresse (lien prêt pour un confrère) :
+  // .../fiche-intervention.html?dentiste=Dr%20X&cabinet=...&specialite=...&adresse=...&telephone=...&email=...
+  (function(){
+    try{
+      var q=new URLSearchParams(location.search);
+      var keys=["dentiste","cabinet","specialite","adresse","telephone","email"];
+      if(keys.some(function(k){return q.has(k);})){
+        var e=getEntete();
+        keys.forEach(function(k){ if(q.has(k)) e[k]=q.get(k); });
+        saveEntete(e);
+      }
+    }catch(_){}
+  })();
   renderEntete();
 
   // --- Pré-remplissage depuis la passerelle ADIA -----------------------
@@ -1838,7 +1851,7 @@
   function withTimeout(p, ms){ return Promise.race([p, new Promise(function(_,rej){ setTimeout(function(){ rej({name:"TimeoutError"}); }, ms); })]); }
   async function toggleRecord(btn){
     if(recording){ rec && rec.stop(); return; }
-    setMsg("① Démarrage… (v5.7)");                       // preuve immédiate que le clic est pris
+    setMsg("① Démarrage… (v5.8)");                       // preuve immédiate que le clic est pris
     btn.textContent="⏳ Préparation…";
     if(!navigator.mediaDevices || !window.MediaRecorder){ setMsg("Ce navigateur ne gère pas le micro. Ouvrez la fiche dans Chrome ou Edge.",true); btn.textContent="🎤 Dicter la fiche"; return; }
     // Micro D'ABORD, tant que le clic est "frais" (sinon le navigateur bloque
