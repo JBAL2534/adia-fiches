@@ -75,15 +75,70 @@
     var u=URL.createObjectURL(blob); var a=document.createElement('a'); a.href=u; a.download=name;
     document.body.appendChild(a); a.click(); setTimeout(function(){ URL.revokeObjectURL(u); a.remove(); }, 4000);
   }
+  function planEsc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function buildPlanWord(data){
+    var NAVY="#173a63", RED="#c0110f";
+    var e=getEntete()||{dentiste:ORIG.dentiste,cabinet:ORIG.cabinet,specialite:ORIG.specialite};
+    var p=data.p||{};
+    var H3="font-size:11.5pt;color:"+NAVY+";font-weight:bold;margin:13px 0 4px;border-bottom:1.5px solid "+NAVY+";padding-bottom:2px";
+    var logo=e.logo?"<img src='"+e.logo+"' style='max-height:58px;max-width:210px'><br>":"";
+    var lh=[]; if(e.adresse) lh.push(planEsc(e.adresse));
+    var te=[]; if(e.telephone) te.push("Tél. "+planEsc(e.telephone)); if(e.email) te.push(planEsc(e.email));
+    if(te.length) lh.push(te.join(" · "));
+    var coord=lh.map(function(l){return "<div style='font-size:9pt;color:#555'>"+l+"</div>";}).join("");
+    var letterhead="<div style='text-align:center'>"+logo+"<b style='font-size:15pt'>"+planEsc(e.dentiste||"")+"</b>"+(e.cabinet?"<br>"+planEsc(e.cabinet):"")+(e.specialite?"<br><span style='font-size:9.5pt;color:#555'>"+planEsc(e.specialite)+"</span>":"")+coord+"</div>";
+    var banner="<table width='100%' cellpadding='8' cellspacing='0' style='margin:12px 0 8px'><tr><td bgcolor='"+NAVY+"' style='color:#ffffff;font-size:16pt;font-weight:bold;letter-spacing:2px;text-align:center'>PLAN DE TRAITEMENT</td></tr></table>";
+    function pc(l,v,big){ return "<td width='50%' style='padding:6px 10px;vertical-align:top'><div style='font-size:8pt;color:"+NAVY+";font-weight:bold'>"+l+"</div><div style='font-size:"+(big?'12.5pt;font-weight:bold':'10.5pt')+"'>"+(planEsc(v)||"&nbsp;")+"</div></td>"; }
+    var patient="<table width='100%' cellpadding='0' cellspacing='0' style='border:1px solid #dde3ec;background:#f7f9fc'>"
+      +"<tr>"+pc("PATIENT",p.nom,1)+pc("N° DOSSIER",p.dossier,1)+"</tr>"
+      +"<tr>"+pc("DATE",p.date)+pc("CORRESPONDANT",p.correspondant)+"</tr></table>";
+    var med="";
+    if(String(p.allergies||"").trim()||String(p.atcd||"").trim()){
+      med="<table width='100%' cellpadding='0' cellspacing='0' style='margin-top:6px'><tr>"
+        +"<td width='50%' style='padding:3px 8px'><b style='color:"+NAVY+"'>Allergies :</b> "+(planEsc(p.allergies)||"—")+"</td>"
+        +"<td width='50%' style='padding:3px 8px'><b style='color:"+NAVY+"'>Antécédents :</b> "+(planEsc(p.atcd)||"—")+"</td></tr></table>";
+    }
+    var active=(data.alertsList||[]).filter(function(a){ return data.alerts && data.alerts[a.key]; }).map(function(a){return planEsc(a.label);});
+    var alerts=active.length ? "<table width='100%' cellpadding='0' cellspacing='0' style='margin:10px 0'><tr><td width='6' bgcolor='"+RED+"'></td><td bgcolor='#fdeaea' style='padding:8px 12px;border:1px solid "+RED+";border-left:none'><span style='color:"+RED+";font-weight:bold;font-size:11pt'>&#9888; ALERTES MÉDICALES</span><br><span style='color:"+RED+";font-weight:bold;font-size:11.5pt'>"+active.join(" &nbsp;•&nbsp; ")+"</span></td></tr></table>" : "";
+    var teeth=data.teeth||{};
+    var tkeys=Object.keys(teeth).filter(function(k){ return String(teeth[k]||"").trim(); });
+    var teethTable = tkeys.length
+      ? "<table width='100%' cellpadding='0' cellspacing='0' style='border-collapse:collapse'>"
+         +"<tr><td bgcolor='"+NAVY+"' width='90' style='color:#fff;padding:5px 8px;font-size:8.5pt;font-weight:bold'>DENT</td><td bgcolor='"+NAVY+"' style='color:#fff;padding:5px 8px;font-size:8.5pt;font-weight:bold'>ACTE</td></tr>"
+         +tkeys.map(function(k,i){ return "<tr"+(i%2?" bgcolor='#f4f7fb'":"")+"><td style='padding:5px 8px;border:1px solid #dde3ec'><b style='color:"+NAVY+"'>"+planEsc(k)+"</b></td><td style='padding:5px 8px;border:1px solid #dde3ec'>"+planEsc(teeth[k])+"</td></tr>"; }).join("")
+         +"</table>"
+      : "<div style='color:#999'>—</div>";
+    var odonto="<div style='"+H3+"'>Odontogramme — actes par dent</div>"+teethTable;
+    var comp="";
+    if(String(p.complements||"").trim()||String(data.bprf||"").trim()){
+      comp="<div style='"+H3+"'>Compléments</div>"
+        +(String(p.complements||"").trim()?"<div style='margin:2px 0'>"+planEsc(p.complements)+"</div>":"")
+        +(String(data.bprf||"").trim()?"<div style='margin:2px 0'><b style='color:"+NAVY+"'>BPRF :</b> "+planEsc(data.bprf)+"</div>":"");
+    }
+    var sessions=(data.sessions||[]).filter(function(s){ return String(s.actes||"").trim()||String(s.duree||"").trim(); });
+    var sessSec = sessions.length
+      ? "<div style='"+H3+"'>Séances</div>"+sessions.map(function(s,i){ return "<div style='margin:3px 0'><b style='color:"+NAVY+"'>Séance "+(i+1)+"</b>"+(String(s.duree||"").trim()?" <span style='color:#555'>("+planEsc(s.duree)+")</span>":"")+" : "+(planEsc(s.actes)||"—")+"</div>"; }).join("")
+      : "";
+    return "<html xmlns:w='urn:schemas-microsoft-com:office:word'><head><meta charset='utf-8'><title>Plan de traitement "+planEsc(p.nom||"")+"</title></head>"
+      +"<body style='font-family:Arial; font-size:11pt; color:#111'>"
+      +letterhead+banner+patient+med+alerts+odonto+comp+sessSec
+      +"</body></html>";
+  }
   async function classerHtml(html){
     var dossier=dossierNow(), nom=nomNow();
     var safe=(nom||dossier||'plan').replace(/[\\/:*?"<>|]/g,' ').replace(/\s+/g,' ').trim();
-    var name='Plan de traitement'+(safe?' - '+safe:'')+'.html';
-    var blob=new Blob([html],{type:'text/html'});
+    // On reconstruit un Word PROPRE à partir des données sérialisées du plan.
+    var data=null;
+    try{ var m=html.match(/window\.__FICHE_DATA__\s*=\s*(\{[\s\S]*?\});/); if(m) data=JSON.parse(m[1]); }catch(e){}
+    var isWord=!!data;
+    var name='Plan de traitement'+(safe?' - '+safe:'')+(isWord?'.doc':'.html');
+    var body=isWord ? ("\ufeff"+buildPlanWord(data)) : html;
+    var blob=new Blob([body],{type:isWord?'application/msword':'text/html'});
+    var CT=isWord?'application/msword':'text/html';
     if(!dossier){ download(blob,name); toast('Importez d’abord le patient (ADIA) — plan téléchargé, non classé.',true); return; }
     var hosts=['http://127.0.0.1:8765/classer-fiche','http://localhost:8765/classer-fiche'];
     async function envoi(h){ var url=h+'?folder_id='+encodeURIComponent(dossier)+'&filename='+encodeURIComponent(name);
-      var r=await fetch(url,{method:'POST',headers:{'Content-Type':'text/html'},body:blob});
+      var r=await fetch(url,{method:'POST',headers:{'Content-Type':CT},body:blob});
       if(!r.ok){ var e={}; try{e=await r.json();}catch(_){}; throw new Error(e.error||('Erreur passerelle (HTTP '+r.status+')')); } return r.json(); }
     try{ await envoi(hosts[0]); toast('✓ Plan classé dans le dossier du patient n° '+dossier+'.'); }
     catch(e){ if(/Failed to fetch|NetworkError|load failed/i.test(String(e&&e.message||e))){
@@ -115,7 +170,7 @@
     if(!document.querySelector('meta[name="theme-color"]')){ var m=document.createElement('meta'); m.name='theme-color'; m.content='#173a63'; document.head.appendChild(m); }
     if(!document.querySelector('link[rel="apple-touch-icon"]')){ var a=document.createElement('link'); a.rel='apple-touch-icon'; a.href='icon-192.png'; document.head.appendChild(a); }
   }
-  var PLAN_ADIA_VERSION="v1.4 · 24/07/2026";
+  var PLAN_ADIA_VERSION="v1.5 · 18/08/2026";
   function ensureBadge(){
     if(!document.body) return;
     var v=document.getElementById('adia-plan-ver');
