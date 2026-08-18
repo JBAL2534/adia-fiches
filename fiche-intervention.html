@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<title>Fiche intervention – v5.4</title>
+<title>Fiche intervention – v5.5</title>
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#173a63">
 <link rel="icon" href="icon-192.png">
@@ -208,7 +208,7 @@
 <div class="page">
   <div class="hdr">
     <div id="entete"></div>
-    <div class="hdr-title">Fiche d'intervention<span id="appver">v5.4</span></div>
+    <div class="hdr-title">Fiche d'intervention<span id="appver">v5.5</span></div>
   </div>
 
   <!-- Barre de dictée -->
@@ -449,29 +449,112 @@
   // Interroge le lien local 127.0.0.1:8765 (comme ADIA Clinic) et remplit
   // NOM / PRÉNOM / N° DOSSIER avec le patient synchronisé. Marche que la fiche
   // soit ouverte en PWA ou en fichier.
+  // ===== Lecture du patient : patient déchiffré, sinon capture d'écran lue par l'IA (comme ADIA Clinic) =====
+  var ADIA_SB_URL="https://gcnammzonyrhxhrmklrn.supabase.co";
+  var ADIA_SB_KEY="sb_publishable_CHEfcDwVJfTMFTcnDLbGwQ_g99uoWim";
+  function adiaCapturePrompt(){
+    return [
+      "Tu aides un cabinet dentaire à recopier les informations administratives visibles sur une capture d'écran de fiche patient.",
+      "Analyse uniquement l'image fournie.",
+      "Lis la fiche patient actuellement affichée (zone état civil). Ignore les listes d'autres patients, l'agenda ou les menus.",
+      "PRÉALABLE OBLIGATOIRE : décide d'abord si une FICHE PATIENT est réellement affichée (identité administrative d'une personne précise). Si l'écran montre un agenda, un planning, une page d'accueil, une liste de rendez-vous ou tout écran sans fiche patient : retourne TOUS les champs vides, confidence 'faible', warnings ['Aucune fiche patient à l'écran'].",
+      "INTERDIT : patient_label ne doit JAMAIS être un mot d'interface (Agenda, Planning, Accueil, Rendez-vous, Bibliothèque, Patient, Fiche...), ni un jour, un mois ou une année.",
+      "INTERDIT : patient_folder_id ne doit JAMAIS être une année (ex. 2025, 2026), une date ou une heure.",
+      "confidence 'haute' UNIQUEMENT si le nom ET le numéro de fiche sont lus ensemble sur une même fiche patient identifiable.",
+      "Ne déduis rien. Si une information n'est pas lisible avec certitude, laisse le champ vide.",
+      "Retourne uniquement un objet JSON valide, sans markdown, sans commentaire.",
+      "Schéma exact :",
+      "{\"patient_label\":\"\",\"patient_folder_id\":\"\",\"patient_email\":\"\",\"patient_phone\":\"\",\"source_software\":\"julie|logos|autre|inconnu\",\"confidence\":\"haute|moyenne|faible\",\"warnings\":[]}",
+      "Règles :",
+      "- patient_label : nom et prénom ou identifiant patient affiché.",
+      "- patient_folder_id : numéro de fiche, numéro dossier ou identifiant logiciel.",
+      "- source_software : 'julie' si l'écran ressemble au logiciel Julie, 'logos' pour Logosw, sinon 'autre' ou 'inconnu'."
+    ].join("\n");
+  }
+  function adiaExtractJson(text){
+    var raw=String(text||"").trim(); if(!raw) return {};
+    try{ return JSON.parse(raw); }catch(e){}
+    var s=raw.indexOf("{"), e=raw.lastIndexOf("}");
+    if(s>=0 && e>s){ try{ return JSON.parse(raw.slice(s,e+1)); }catch(_){} }
+    return {};
+  }
+  function adiaNormAdmin(d){
+    d=d||{};
+    return { patient_label:String(d.patient_label||"").trim(), patient_folder_id:String(d.patient_folder_id||"").trim(),
+      source_software:String(d.source_software||"inconnu").trim()||"inconnu", confidence:String(d.confidence||"faible").trim()||"faible" };
+  }
+  function adiaSanitizeCapture(out){
+    function strip(s){ return String(s||"").normalize("NFD").replace(/[̀-ͯ]/g,"").trim().toLowerCase(); }
+    var STOP={};["agenda","planning","accueil","rendez-vous","rendez vous","rdv","bibliotheque","patient","patients",
+      "fiche","dossier","erreur","journee","semaine","mois","recherche","menu","lundi","mardi","mercredi","jeudi",
+      "vendredi","samedi","dimanche","janvier","fevrier","mars","avril","mai","juin","juillet","aout","septembre",
+      "octobre","novembre","decembre","fermeture","ouverture","caisse","reglement","reglements","comptabilite",
+      "facturation","facture","devis","traitement","traitements","parametres","configuration","aujourdhui",
+      "impression","imprimer","apercu","radios","actes","cotation","secu","carte","cps","liste","historique",
+      "relance","relances","echeancier","stock","laboratoire"].forEach(function(w){ STOP[w]=1; });
+    var lk=strip(out.patient_label);
+    var labelBad=!!lk && (STOP[lk]===1 || /^(19|20)\d{2}$/.test(lk));
+    var folderBad=!!out.patient_folder_id && /^(19|20)\d{2}$/.test(out.patient_folder_id.trim());
+    if(labelBad) out.patient_label="";
+    if(folderBad) out.patient_folder_id="";
+    if(labelBad||folderBad) out.confidence="faible";
+    return out;
+  }
+  function adiaBlobToDataUrl(blob){ return new Promise(function(res,rej){ var fr=new FileReader(); fr.onload=function(){res(fr.result);}; fr.onerror=rej; fr.readAsDataURL(blob); }); }
+  async function adiaReadCapture(base){
+    try{
+      var resp=await fetch(base+"/patient-admin/capture",{cache:"no-store"});
+      if(!resp.ok) return null;
+      var blob=await resp.blob();
+      if(!blob || !/^image\//.test(blob.type||"") || blob.size>8000000) return null;
+      var imageDataUrl=await adiaBlobToDataUrl(blob);
+      var r=await fetch(ADIA_SB_URL+"/functions/v1/generate-document",{method:"POST",
+        headers:{"Content-Type":"application/json","apikey":ADIA_SB_KEY,"Authorization":"Bearer "+ADIA_SB_KEY},
+        body:JSON.stringify({prompt:adiaCapturePrompt(),imageDataUrl:imageDataUrl,task:"patient_admin_capture",consultationId:null})});
+      if(!r.ok) return null;
+      var d=await r.json();
+      return adiaSanitizeCapture(adiaNormAdmin(adiaExtractJson((d && (d.output_text||d.text))||"")));
+    }catch(e){ return null; }
+  }
+  function adiaApplyPatient(label, folder){
+    var np=splitPatientLabelAdia(label||"");
+    var elNom=document.getElementById("nom"), elPre=document.getElementById("prenom"), elDos=document.getElementById("dossier");
+    if(elNom) elNom.value=np.nom;
+    if(elPre) elPre.value=np.prenom;
+    if(elDos && folder) elDos.value=folder;
+    if(typeof save==="function") save();
+    return (np.nom+" "+np.prenom).trim();
+  }
   async function importPatientFromAdia(){
     var msg=document.getElementById("importAdiaMsg");
-    if(msg) msg.textContent="Lecture de la passerelle…";
-    var urls=["http://127.0.0.1:8765/patient-admin/latest","http://localhost:8765/patient-admin/latest"];
-    for(var i=0;i<urls.length;i++){
+    function say(t){ if(msg) msg.textContent=t; }
+    say("Lecture de la passerelle…");
+    var bases=["http://127.0.0.1:8765","http://localhost:8765"];
+    for(var i=0;i<bases.length;i++){
       try{
-        var r=await fetch(urls[i],{cache:"no-store"});
+        var r=await fetch(bases[i]+"/patient-admin/latest",{cache:"no-store"});
         if(!r.ok) continue;
         var d=await r.json();
         var folder=(d && d.patient_folder_id || "").toString().trim();
         var label=(d && d.patient_label || "").toString().trim();
-        if(!folder && !label){ if(msg) msg.textContent="La passerelle répond, mais aucun patient synchronisé (faites Ctrl+Alt+A sur la fiche patient)."; return; }
-        var np=splitPatientLabelAdia(label);
-        var elNom=document.getElementById("nom"), elPre=document.getElementById("prenom"), elDos=document.getElementById("dossier");
-        if(elNom) elNom.value=np.nom;
-        if(elPre) elPre.value=np.prenom;
-        if(elDos && folder) elDos.value=folder;
-        if(typeof save==="function") save();
-        if(msg) msg.textContent="Patient importé : "+(np.nom+" "+np.prenom).trim()+(folder?(" / "+folder):"");
+        if(folder || label){ var nm=adiaApplyPatient(label,folder); say("Patient importé : "+nm+(folder?(" / "+folder):"")); return; }
+        var cv=Number(d && d.captureVersion || 0);
+        if(cv>0){
+          say("Lecture de l'écran capturé par l'IA…");
+          var p=await adiaReadCapture(bases[i]);
+          if(p && (p.patient_folder_id || p.patient_label)){
+            var nm2=adiaApplyPatient(p.patient_label, p.patient_folder_id);
+            say("Patient lu : "+(nm2||p.patient_label||"")+(p.patient_folder_id?(" / "+p.patient_folder_id):"")+(p.confidence==="faible"?" — à vérifier":""));
+          } else {
+            say("Écran capturé, mais aucune fiche patient claire (nom + n°). Ouvrez la FICHE du patient dans le logiciel, faites Ctrl+Alt+A, puis réessayez.");
+          }
+          return;
+        }
+        say("La passerelle répond, mais aucun patient synchronisé. Ouvrez la fiche du patient, faites Ctrl+Alt+A, puis recliquez ici.");
         return;
-      }catch(e){ /* passerelle absente : essayer l'URL suivante */ }
+      }catch(e){ /* essayer l'URL suivante */ }
     }
-    if(msg) msg.textContent="Passerelle non trouvée. Lancez « ADIA - Passerelle logiciel » et vérifiez « Activer lien local ADIA ».";
+    say("Passerelle non trouvée. Lancez « ADIA - Passerelle logiciel » et vérifiez « Activer lien local ADIA ».");
   }
   (function(){ var b=document.getElementById("importAdia"); if(b) b.addEventListener("click", importPatientFromAdia); })();
 
@@ -1717,7 +1800,7 @@
   function withTimeout(p, ms){ return Promise.race([p, new Promise(function(_,rej){ setTimeout(function(){ rej({name:"TimeoutError"}); }, ms); })]); }
   async function toggleRecord(btn){
     if(recording){ rec && rec.stop(); return; }
-    setMsg("① Démarrage… (v5.4)");                       // preuve immédiate que le clic est pris
+    setMsg("① Démarrage… (v5.5)");                       // preuve immédiate que le clic est pris
     btn.textContent="⏳ Préparation…";
     if(!navigator.mediaDevices || !window.MediaRecorder){ setMsg("Ce navigateur ne gère pas le micro. Ouvrez la fiche dans Chrome ou Edge.",true); btn.textContent="🎤 Dicter la fiche"; return; }
     // Micro D'ABORD, tant que le clic est "frais" (sinon le navigateur bloque
