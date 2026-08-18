@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<title>Fiche intervention – v5.8</title>
+<title>Fiche intervention – v5.9</title>
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#173a63">
 <link rel="icon" href="icon-192.png">
@@ -208,7 +208,7 @@
 <div class="page">
   <div class="hdr">
     <div id="entete"></div>
-    <div class="hdr-title">Fiche d'intervention<span id="appver">v5.8</span></div>
+    <div class="hdr-title">Fiche d'intervention<span id="appver">v5.9</span></div>
   </div>
 
   <!-- Barre de dictée -->
@@ -418,6 +418,17 @@
         var e=getEntete();
         keys.forEach(function(k){ if(q.has(k)) e[k]=q.get(k); });
         saveEntete(e);
+      }
+      var lg=q.get("logo");
+      if(lg && !/^[a-z]+:|^\/\//i.test(lg) && lg.indexOf("..")<0){
+        fetch(lg).then(function(r){ return r.ok?r.blob():null; }).then(function(blob){
+          if(!blob) return; var img=new Image();
+          img.onload=function(){ var max=420, sc=Math.min(1,max/Math.max(img.width,img.height));
+            var w=Math.max(1,Math.round(img.width*sc)), h=Math.max(1,Math.round(img.height*sc));
+            var cv=document.createElement("canvas"); cv.width=w; cv.height=h; var cx=cv.getContext("2d"); cx.fillStyle="#fff"; cx.fillRect(0,0,w,h); cx.drawImage(img,0,0,w,h);
+            var e2=getEntete(); e2.logo=cv.toDataURL("image/jpeg",0.85); e2.logoW=w; e2.logoH=h; saveEntete(e2); renderEntete(); };
+          var fr=new FileReader(); fr.onload=function(){ img.src=fr.result; }; fr.readAsDataURL(blob);
+        }).catch(function(){});
       }
     }catch(_){}
   })();
@@ -1851,7 +1862,7 @@
   function withTimeout(p, ms){ return Promise.race([p, new Promise(function(_,rej){ setTimeout(function(){ rej({name:"TimeoutError"}); }, ms); })]); }
   async function toggleRecord(btn){
     if(recording){ rec && rec.stop(); return; }
-    setMsg("① Démarrage… (v5.8)");                       // preuve immédiate que le clic est pris
+    setMsg("① Démarrage… (v5.9)");                       // preuve immédiate que le clic est pris
     btn.textContent="⏳ Préparation…";
     if(!navigator.mediaDevices || !window.MediaRecorder){ setMsg("Ce navigateur ne gère pas le micro. Ouvrez la fiche dans Chrome ou Edge.",true); btn.textContent="🎤 Dicter la fiche"; return; }
     // Micro D'ABORD, tant que le clic est "frais" (sinon le navigateur bloque
