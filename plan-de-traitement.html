@@ -170,7 +170,7 @@
     if(!document.querySelector('meta[name="theme-color"]')){ var m=document.createElement('meta'); m.name='theme-color'; m.content='#173a63'; document.head.appendChild(m); }
     if(!document.querySelector('link[rel="apple-touch-icon"]')){ var a=document.createElement('link'); a.rel='apple-touch-icon'; a.href='icon-192.png'; document.head.appendChild(a); }
   }
-  var PLAN_ADIA_VERSION="v1.5 · 18/08/2026";
+  var PLAN_ADIA_VERSION="v1.6 · 18/08/2026";
   function ensureBadge(){
     if(!document.body) return;
     var v=document.getElementById('adia-plan-ver');
@@ -182,6 +182,20 @@
   // ===== En-tête personnalisable (partagé avec la fiche via le même localStorage) =====
   var ENTETE_KEY="adia-entete-v1";
   var ORIG={cabinet:"La Clé du Sourire", dentiste:"Docteur Jacques BITTON", specialite:"Chirurgie implantaire"};
+  // Pré-configuration de l'en-tête par l'adresse (lien prêt pour un confrère).
+  (function(){
+    try{
+      var q=new URLSearchParams(location.search);
+      var keys=["dentiste","cabinet","specialite","adresse","telephone","email"];
+      if(keys.some(function(k){return q.has(k);})){
+        var cur=getEntete()||{};
+        var e={dentiste:cur.dentiste||ORIG.dentiste, cabinet:cur.cabinet||ORIG.cabinet, specialite:cur.specialite||"",
+               adresse:cur.adresse||"", telephone:cur.telephone||"", email:cur.email||"", logo:cur.logo||"", logoW:cur.logoW||0, logoH:cur.logoH||0};
+        keys.forEach(function(k){ if(q.has(k)) e[k]=q.get(k); });
+        localStorage.setItem(ENTETE_KEY, JSON.stringify(e)); try{ window.__ADIA_ENTETE__=e; }catch(_){}
+      }
+    }catch(_){}
+  })();
   function getEntete(){
     try{ var g=window.__ADIA_ENTETE__; if(g&&(g.cabinet||g.dentiste||g.specialite)) return g; }catch(e){}
     try{ var v=JSON.parse(localStorage.getItem(ENTETE_KEY)); if(v&&(v.cabinet||v.dentiste||v.specialite)) return v; }catch(e){}
