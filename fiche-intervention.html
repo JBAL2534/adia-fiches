@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<title>Fiche intervention – v5.6</title>
+<title>Fiche intervention – v5.7</title>
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#173a63">
 <link rel="icon" href="icon-192.png">
@@ -208,7 +208,7 @@
 <div class="page">
   <div class="hdr">
     <div id="entete"></div>
-    <div class="hdr-title">Fiche d'intervention<span id="appver">v5.6</span></div>
+    <div class="hdr-title">Fiche d'intervention<span id="appver">v5.7</span></div>
   </div>
 
   <!-- Barre de dictée -->
@@ -1021,66 +1021,81 @@
     }
     Y = Math.min(_yy, _logoBottom) - 6;
 
-    // ---- Identité (panneau clair arrondi, 2 colonnes) ----
-    var C2=320, idH=52;
-    rrect(ML, Y-idH+14, MR-ML, idH, 6, BORDER, PANEL);
-    var iy=Y;
-    T(ML+12, iy, "Patient",      "F2", 9.5, NAVY); T(ML+12, iy-13, val("nom")+" "+val("prenom"), "F1", 12);
-    T(C2,    iy, "N° dossier",   "F2", 9.5, NAVY); T(C2,    iy-13, (val("dossier")||"-"),          "F1", 12);
-    nl(idH-4);
+    // ---- Identité (panneau premium 2x2) ----
+    var idH=58;
+    rrect(ML, Y-idH+12, MR-ML, idH, 7, BORDER, PANEL);
+    var C2b=ML+272, iy=Y-2;
+    T(ML+14, iy, "PATIENT", "F2", 8, NAVY);        T(ML+14, iy-13, (val("nom")+" "+val("prenom")).trim()||"-", "F2", 12.5);
+    T(C2b,   iy, "N° DOSSIER", "F2", 8, NAVY);     T(C2b,   iy-13, (val("dossier")||"-"), "F2", 12.5);
+    T(ML+14, iy-31, "DATE", "F2", 8, NAVY);        T(ML+14+46, iy-31, val("date")||"-", "F1", 10.5);
+    T(C2b,   iy-31, "CORRESPONDANT", "F2", 8, NAVY); T(C2b+94, iy-31, val("correspondant")||"-", "F1", 10.5);
+    Y = Y - idH - 2;
 
-    // ---- Alertes médicales (en rouge, bien visibles) ----
+    // ---- Alertes médicales : encadré rouge très visible ----
+    var RED="0.80 0.10 0.10", REDBG="0.99 0.90 0.90";
     var _al=alertModel.filter(function(it){ return chk(it.id); }).map(function(it){ return it.label; });
     if(_al.length){
-      var RED="0.83 0.10 0.10";
-      T(ML, Y, "ALERTES", "F2", 9, RED);
-      T(ML+56, Y, _al.join("   •   "), "F2", 10.5, RED);
-      nl(18);
+      var _lines=wrap(_al.join("    ·    "), 11, MR-ML-30);
+      var _abH=18+_lines.length*14+8;
+      rrect(ML, Y-_abH+12, MR-ML, _abH, 5, RED, REDBG);
+      fillRect(ML, Y-_abH+12, 5, _abH, RED);
+      T(ML+16, Y, "!  ALERTES MÉDICALES", "F2", 10.5, RED);
+      var _ay=Y-16;
+      _lines.forEach(function(l){ T(ML+16, _ay, l, "F2", 11.5, RED); _ay-=14; });
+      Y = Y - _abH - 2;
     }
-    T(ML+12, Y, "Correspondant", "F2", 9.5, NAVY); T(ML+12+92, Y-0, val("correspondant")||"-", "F1", 11);
-    T(C2,    Y, "Date",          "F2", 9.5, NAVY); T(C2+38,    Y-0, val("date")||"-",           "F1", 11);
-    nl(24);
 
-    // ---- Intervention : cadre arrondi libre en haut ----
-    T(ML, Y, "INTERVENTION", "F2", 10, NAVY); nl(9);
-    var top=Y, boxH=120;
+    // ---- Intervention ----
+    T(ML, Y, "INTERVENTION", "F2", 10, NAVY); nl(10);
+    var top=Y, boxH=104;
     rrect(ML, top-boxH, MR-ML, boxH, 6, BORDER, "0.995 0.995 0.997");
     var desc=val("description");
-    if(desc){ var yy=top-18; wrap(desc,11,MR-ML-20).slice(0,7).forEach(function(l){ T(ML+11,yy,l,"F1",11); yy-=15; }); }
-    Y=top-boxH-4;
+    if(desc){ var dyy=top-18; wrap(desc,11,MR-ML-22).slice(0,6).forEach(function(l){ T(ML+12,dyy,l,"F1",11); dyy-=15; }); }
+    Y=top-boxH-6;
 
     // ---- 1/ Avulsion ----
     section("1 / Avulsion - implantation immediate");
-    chkbox(ML,Y-2,chk("avul_oui"));   T(ML+18,Y,"oui","F1",11);
-    chkbox(ML+95,Y-2,chk("avul_non")); T(ML+113,Y,"non","F1",11); nl(4);
+    var _ao=chk("avul_oui"), _an=chk("avul_non");
+    chkbox(ML,Y-2,_ao);    T(ML+18,Y,"oui",_ao?"F2":"F1",11,_ao?RED:null);
+    chkbox(ML+95,Y-2,_an); T(ML+113,Y,"non",_an?"F2":"F1",11,_an?RED:null); nl(8);
 
-    // ---- 2/ Implants ----
+    // ---- 2/ Implants : tableau premium (texte foncé) ----
     section("2 / Implants");
+    var cx0=ML+8, cxS=ML+34, cxD=ML+250, cxR=ML+330, rowH=18;
+    fillRect(ML, Y-5, MR-ML, rowH, NAVY);
+    T(cx0, Y+2, "N°", "F2", 8.5, "1 1 1"); T(cxS, Y+2, "SYSTEME", "F2", 8.5, "1 1 1");
+    T(cxD, Y+2, "DENT", "F2", 8.5, "1 1 1"); T(cxR, Y+2, "Ø x L / réf", "F2", 8.5, "1 1 1");
+    nl(rowH);
     if(implants.length){
       implants.forEach(function(it,i){
-        T(ML+10,Y,(i+1)+".","F2",11,NAVY);
-        T(ML+28,Y,it.sys,"F1",11);
-        T(ML+150,Y,"dent "+(it.dent||"?"),"F1",11);
-        if(it.spec) T(ML+232,Y,it.spec,"F4",10.5,GREY);
-        nl(15);
+        if(i%2===1) fillRect(ML, Y-5, MR-ML, rowH, "0.955 0.968 0.985");
+        T(cx0, Y+2, (i+1), "F2", 10.5, NAVY);
+        T(cxS, Y+2, it.sys||"-", "F2", 10.5);
+        T(cxD, Y+2, it.dent||"-", "F1", 10.5);
+        T(cxR, Y+2, it.spec||"-", "F1", 10.5);
+        rule(Y-5, BORDER); nl(rowH);
       });
-    } else { T(ML+10,Y,"(aucun)","F4",11,GREY); nl(15); }
+    } else { T(cx0, Y+2, "(aucun)", "F4", 10.5, GREY); nl(rowH); }
+    nl(8);
 
-    // ---- 3/ Materiel ----
+    // ---- 3/ Materiel (groupé, coché seulement, texte foncé) ----
     section("3 / Materiel");
-    var any=false;
-    function grp(titre,arr){
-      var got=arr.filter(function(a){return chk(a[0]);}).map(function(a){return a[1];});
-      if(got.length){ any=true; T(ML+10,Y,titre,"F2",10.5,NAVY); T(ML+100,Y,got.join(",   "),"F1",11); nl(15); }
-    }
-    matModel.forEach(function(g){ grp(g.title||"", g.items.map(function(it){return [it.id,it.label];})); });
-    if(!any){ T(ML+10,Y,"-","F4",11,GREY); nl(15); }
+    var anyMat=false;
+    matModel.forEach(function(g){
+      var got=g.items.filter(function(it){return chk(it.id);}).map(function(it){return it.label;});
+      if(!got.length) return; anyMat=true;
+      T(ML+10, Y, (g.title||"")+" :", "F2", 10, NAVY);
+      var ml=wrap(got.join(",   "), 11, MR-ML-135), my=Y;
+      ml.forEach(function(l){ T(ML+125, my, l, "F1", 11); my-=13; });
+      nl(Math.max(15, ml.length*13+2));
+    });
+    if(!anyMat){ T(ML+10,Y,"-","F4",11,GREY); nl(15); }
 
     // ---- 4/ PRF ----
     section("4 / PRF");
     var prf=[];
     prfModel.forEach(function(it){ if(chk(it.id)) prf.push((val(it.id+"_n")||"?")+" "+it.label); });
-    T(ML+10,Y, prf.length?prf.join("           "):"-", "F1", 11); nl(15);
+    T(ML+10,Y, prf.length?prf.join("            "):"-", prf.length?"F2":"F4", 11, prf.length?null:GREY); nl(15);
 
     // ---- Autres éléments ----
     var cust=customs.filter(function(c){return c.checked!==false;});
@@ -1616,36 +1631,56 @@
     function v(id){var el=document.getElementById(id);return el?el.value.trim():"";}
     function c(id){var el=document.getElementById(id);return el?el.checked:false;}
     function esc(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
-    function line(x){ return x?esc(x):"____________________"; }
-    function box(ck,label){ var L=esc(label).replace(/ /g,"&nbsp;"); return "<span style='white-space:nowrap'><span style='font-size:14pt"+(ck?";color:#d40000;font-weight:bold":"")+"'>"+(ck?"&#9746;":"&#9744;")+"</span>&nbsp;"+(ck?"<b style='color:#d40000'>"+L+"</b>":L)+"</span>"; }
-    function grp(arr){ return arr.map(function(a){return box(c(a[0]),a[1]);}).join(" &nbsp;&nbsp; "); }
-    var impRows = implants.length ? implants.map(function(it,i){
-      return "<tr><td>"+(i+1)+"</td><td>"+esc(it.sys)+"</td><td>"+line(it.dent)+"</td><td>"+line(it.spec)+"</td></tr>";
-    }).join("") : "<tr><td>1</td><td>____________</td><td>________</td><td>______________</td></tr>";
-    var cust = customs.filter(function(x){return x.checked!==false;}).map(function(x){return "<li>"+esc(x.label)+"</li>";}).join("");
-    var desc = v("description");
+    function box(ck,label){ var L=esc(label); return "<span style='white-space:nowrap'><span style='font-size:13pt"+(ck?";color:#c0110f":"")+"'>"+(ck?"&#9746;":"&#9744;")+"</span> "+(ck?"<b style='color:#c0110f'>"+L+"</b>":L)+"</span>"; }
+    var NAVY="#173a63", RED="#c0110f";
+    var H3="font-size:11.5pt;color:"+NAVY+";font-weight:bold;margin:13px 0 4px;border-bottom:1.5px solid "+NAVY+";padding-bottom:2px";
+    var letterhead=(function(){ var e=getEntete();
+      var logo=e.logo?"<img src='"+e.logo+"' style='max-height:58px;max-width:210px'><br>":"";
+      var lines=[]; if(e.adresse) lines.push(esc(e.adresse));
+      var te=[]; if(e.telephone) te.push("Tél. "+esc(e.telephone)); if(e.email) te.push(esc(e.email));
+      if(te.length) lines.push(te.join(" · "));
+      var coord=lines.map(function(l){ return "<div style='font-size:9pt;color:#555'>"+l+"</div>"; }).join("");
+      return "<div style='text-align:center'>"+logo+"<b style='font-size:15pt'>"+esc(e.dentiste||"")+"</b>"+(e.cabinet?"<br>"+esc(e.cabinet):"")+(e.specialite?"<br><span style='font-size:9.5pt;color:#555'>"+esc(e.specialite)+"</span>":"")+coord+"</div>"; })();
+    var banner="<table width='100%' cellpadding='8' cellspacing='0' style='margin:12px 0 8px'><tr><td bgcolor='"+NAVY+"' style='color:#ffffff;font-size:16pt;font-weight:bold;letter-spacing:2px;text-align:center'>FICHE INTERVENTION</td></tr></table>";
+    function pcell(lbl,val,big){ return "<td width='50%' style='padding:6px 10px;vertical-align:top'><div style='font-size:8pt;color:"+NAVY+";font-weight:bold;letter-spacing:.5px'>"+lbl+"</div><div style='font-size:"+(big?"12.5pt;font-weight:bold":"10.5pt")+"'>"+(esc(val)||"&nbsp;")+"</div></td>"; }
+    var patient="<table width='100%' cellpadding='0' cellspacing='0' style='border:1px solid #dde3ec;background:#f7f9fc'>"
+      +"<tr>"+pcell("PATIENT",(v("nom")+" "+v("prenom")).trim(),1)+pcell("N° DOSSIER",v("dossier"),1)+"</tr>"
+      +"<tr>"+pcell("DATE D'INTERVENTION",v("date"),0)+pcell("CORRESPONDANT",v("correspondant"),0)+"</tr></table>";
+    var al=alertModel.filter(function(it){return c(it.id);}).map(function(it){return esc(it.label);});
+    var alerts=al.length ? "<table width='100%' cellpadding='0' cellspacing='0' style='margin:10px 0'><tr>"
+      +"<td width='6' bgcolor='"+RED+"'></td>"
+      +"<td bgcolor='#fdeaea' style='padding:8px 12px;border:1px solid "+RED+";border-left:none'>"
+      +"<span style='color:"+RED+";font-weight:bold;font-size:11pt'>&#9888; ALERTES MÉDICALES</span><br>"
+      +"<span style='color:"+RED+";font-weight:bold;font-size:11.5pt'>"+al.join(" &nbsp;•&nbsp; ")+"</span></td></tr></table>" : "";
+    var desc=v("description");
+    var intervention="<div style='"+H3+"'>Intervention</div><p style='margin:2px 0'>"+(desc?esc(desc).replace(/\n/g,"<br>"):"<span style='color:#999'>—</span>")+"</p>";
+    var avulsion="<div style='"+H3+"'>1 / Avulsion – implantation immédiate</div><p style='margin:2px 0'>"+box(c("avul_oui"),"oui")+" &nbsp;&nbsp;&nbsp; "+box(c("avul_non"),"non")+"</p>";
+    var impBody=implants.length ? implants.map(function(it,i){
+      var bg=i%2?" bgcolor='#f4f7fb'":"";
+      return "<tr"+bg+"><td style='padding:5px 8px;border:1px solid #dde3ec'><b style='color:"+NAVY+"'>"+(i+1)+"</b></td>"
+        +"<td style='padding:5px 8px;border:1px solid #dde3ec'><b>"+esc(it.sys||"-")+"</b></td>"
+        +"<td style='padding:5px 8px;border:1px solid #dde3ec'>"+esc(it.dent||"-")+"</td>"
+        +"<td style='padding:5px 8px;border:1px solid #dde3ec'>"+esc(it.spec||"-")+"</td></tr>";
+    }).join("") : "<tr><td colspan='4' style='padding:5px 8px;border:1px solid #dde3ec;color:#999'>(aucun)</td></tr>";
+    var implantsSec="<div style='"+H3+"'>2 / Implants</div>"
+      +"<table width='100%' cellpadding='0' cellspacing='0' style='border-collapse:collapse'>"
+      +"<tr><td bgcolor='"+NAVY+"' style='color:#fff;padding:5px 8px;font-size:8.5pt;font-weight:bold'>N°</td>"
+      +"<td bgcolor='"+NAVY+"' style='color:#fff;padding:5px 8px;font-size:8.5pt;font-weight:bold'>SYSTÈME</td>"
+      +"<td bgcolor='"+NAVY+"' style='color:#fff;padding:5px 8px;font-size:8.5pt;font-weight:bold'>DENT</td>"
+      +"<td bgcolor='"+NAVY+"' style='color:#fff;padding:5px 8px;font-size:8.5pt;font-weight:bold'>Ø × L / réf</td></tr>"+impBody+"</table>";
+    var matGroups=matModel.map(function(g){
+      var got=g.items.filter(function(it){return c(it.id);}).map(function(it){return esc(it.label);});
+      return got.length ? "<div style='margin:3px 0'><b style='color:"+NAVY+"'>"+esc(g.title||"")+" :</b> "+got.join(", ")+"</div>" : "";
+    }).filter(Boolean).join("");
+    if(!matGroups) matGroups="<div style='color:#999'>—</div>";
+    var materielSec="<div style='"+H3+"'>3 / Matériel</div>"+matGroups;
+    var prfArr=prfModel.filter(function(it){return c(it.id);}).map(function(it){ return "<b>"+(v(it.id+"_n")||"?")+"</b> "+esc(it.label); });
+    var prfSec="<div style='"+H3+"'>4 / PRF</div><p style='margin:2px 0'>"+(prfArr.length?prfArr.join(" &nbsp;&nbsp; "):"<span style='color:#999'>—</span>")+"</p>";
+    var cust=customs.filter(function(x){return x.checked!==false;}).map(function(x){return "<li>"+esc(x.label)+"</li>";}).join("");
+    var autres=cust ? "<div style='"+H3+"'>Autres éléments</div><ul style='margin:2px 0'>"+cust+"</ul>" : "";
     return "<html xmlns:w='urn:schemas-microsoft-com:office:word'><head><meta charset='utf-8'><title>"+esc(buildTitle())+"</title></head>"
-     +"<body style='font-family:Arial; font-size:11pt'>"
-     +(function(){ var e=getEntete();
-        var logo=e.logo?"<img src='"+e.logo+"' style='max-height:56px;max-width:200px'><br>":"";
-        var lines=[]; if(e.adresse) lines.push(esc(e.adresse));
-        var te=[]; if(e.telephone) te.push("Tél. "+esc(e.telephone)); if(e.email) te.push(esc(e.email));
-        if(te.length) lines.push(te.join(" · "));
-        var coord=lines.map(function(l){ return "<div style='font-size:9pt;color:#555'>"+l+"</div>"; }).join("");
-        return "<div style='text-align:center'>"+logo+"<b style='font-size:14pt'>"+esc(e.dentiste||"")+"</b>"+(e.cabinet?"<br>"+esc(e.cabinet):"")+(e.specialite?"<br><span style='font-size:9pt;color:#555'>"+esc(e.specialite)+"</span>":"")+coord+"</div>"; })()
-     +"<h1 style='text-align:center; font-style:italic'>FICHE INTERVENTION</h1>"
-     +"<p><b>Correspondant :</b> "+line(v("correspondant"))+"<br><b>NOM :</b> "+line(v("nom"))
-     +"<br><b>Prénom :</b> "+line(v("prenom"))+"<br><b>N° dossier :</b> "+line(v("dossier"))
-     +"<br><b>Date intervention :</b> "+line(v("date"))+"</p>"
-     +(function(){ var a=alertModel.filter(function(it){ return c(it.id); }).map(function(it){ return esc(it.label); });
-        return a.length ? "<p style='color:#d40000;font-weight:bold'>&#9888; Alertes médicales : "+a.join(" &nbsp;•&nbsp; ")+"</p>" : ""; })()
-     +"<h3>Intervention</h3><p>"+(desc?esc(desc).replace(/\n/g,"<br>"):"________________________________________________<br>________________________________________________")+"</p>"
-     +"<h3>1/ Avulsion – implantation immédiate</h3><p>"+box(c("avul_oui"),"oui")+" &nbsp;&nbsp; "+box(c("avul_non"),"non")+"</p>"
-     +"<h3>2/ Implants</h3><table border='1' cellpadding='5' cellspacing='0' style='border-collapse:collapse'><tr><th></th><th>Système</th><th>Dent</th><th>Ø × L / réf</th></tr>"+impRows+"</table>"
-     +"<h3>3/ Matériel</h3>"
-     +matWordHtml()
-     +"<h3>4/ PRF</h3><p>"+prfModel.map(function(it){ return box(c(it.id),(v(it.id+"_n")||"___")+" "+it.label); }).join(" &nbsp;&nbsp; ")+"</p>"
-     +(cust?"<h3>Autres éléments</h3><ul>"+cust+"</ul>":"")
+     +"<body style='font-family:Arial; font-size:11pt; color:#111'>"
+     +letterhead+banner+patient+alerts+intervention+avulsion+implantsSec+materielSec+prfSec+autres
      +"</body></html>";
   }
   document.getElementById("word").addEventListener("click", function(){
@@ -1803,7 +1838,7 @@
   function withTimeout(p, ms){ return Promise.race([p, new Promise(function(_,rej){ setTimeout(function(){ rej({name:"TimeoutError"}); }, ms); })]); }
   async function toggleRecord(btn){
     if(recording){ rec && rec.stop(); return; }
-    setMsg("① Démarrage… (v5.6)");                       // preuve immédiate que le clic est pris
+    setMsg("① Démarrage… (v5.7)");                       // preuve immédiate que le clic est pris
     btn.textContent="⏳ Préparation…";
     if(!navigator.mediaDevices || !window.MediaRecorder){ setMsg("Ce navigateur ne gère pas le micro. Ouvrez la fiche dans Chrome ou Edge.",true); btn.textContent="🎤 Dicter la fiche"; return; }
     // Micro D'ABORD, tant que le clic est "frais" (sinon le navigateur bloque
