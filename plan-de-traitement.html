@@ -127,24 +127,32 @@
   async function classerHtml(html){
     var dossier=dossierNow(), nom=nomNow();
     var safe=(nom||dossier||'plan').replace(/[\\/:*?"<>|]/g,' ').replace(/\s+/g,' ').trim();
-    // On reconstruit un Word PROPRE à partir des données sérialisées du plan.
+    var base='Plan de traitement'+(safe?' - '+safe:'');
+    // On dépose DEUX fichiers : la version .html RÉ-OUVRABLE (à ré-éditer dans le
+    // navigateur) + le Word premium (à lire / imprimer), reconstruit depuis les
+    // données sérialisées du plan.
     var data=null;
     try{ var m=html.match(/window\.__FICHE_DATA__\s*=\s*(\{[\s\S]*?\});/); if(m) data=JSON.parse(m[1]); }catch(e){}
-    var isWord=!!data;
-    var name='Plan de traitement'+(safe?' - '+safe:'')+(isWord?'.doc':'.html');
-    var body=isWord ? ("\ufeff"+buildPlanWord(data)) : html;
-    var blob=new Blob([body],{type:isWord?'application/msword':'text/html'});
-    var CT=isWord?'application/msword':'text/html';
-    if(!dossier){ download(blob,name); toast('Importez d’abord le patient (ADIA) — plan téléchargé, non classé.',true); return; }
+    var files=[{ name: base+'.html', body: html, ct: 'text/html' }];
+    if(data) files.push({ name: base+'.doc', body: "\ufeff"+buildPlanWord(data), ct: 'application/msword' });
+    if(!dossier){ files.forEach(function(f){ download(new Blob([f.body],{type:f.ct}), f.name); }); toast('Importez d’abord le patient (ADIA) — plan téléchargé, non classé.',true); return; }
     var hosts=['http://127.0.0.1:8765/classer-fiche','http://localhost:8765/classer-fiche'];
-    async function envoi(h){ var url=h+'?folder_id='+encodeURIComponent(dossier)+'&filename='+encodeURIComponent(name);
-      var r=await fetch(url,{method:'POST',headers:{'Content-Type':CT},body:blob});
-      if(!r.ok){ var e={}; try{e=await r.json();}catch(_){}; throw new Error(e.error||('Erreur passerelle (HTTP '+r.status+')')); } return r.json(); }
-    try{ await envoi(hosts[0]); toast('✓ Plan classé dans le dossier du patient n° '+dossier+'.'); }
-    catch(e){ if(/Failed to fetch|NetworkError|load failed/i.test(String(e&&e.message||e))){
-        try{ await envoi(hosts[1]); toast('✓ Plan classé dans le dossier du patient n° '+dossier+'.'); return; }catch(_){}
-        download(blob,name); toast('Passerelle non trouvée — plan téléchargé. Lancez la passerelle pour le classer.',true);
-      } else { download(blob,name); toast('Classement refusé ('+String(e.message||e).slice(0,40)+') — plan téléchargé.',true); }
+    async function envoi(h, f){
+      var url=h+'?folder_id='+encodeURIComponent(dossier)+'&filename='+encodeURIComponent(f.name);
+      var r=await fetch(url,{method:'POST',headers:{'Content-Type':f.ct},body:new Blob([f.body],{type:f.ct})});
+      if(!r.ok){ var e={}; try{e=await r.json();}catch(_){}; throw new Error(e.error||('Erreur passerelle (HTTP '+r.status+')')); } return r.json();
+    }
+    try{
+      for(var i=0;i<files.length;i++){
+        var f=files[i];
+        try{ await envoi(hosts[0], f); }
+        catch(e){ if(/Failed to fetch|NetworkError|load failed/i.test(String(e&&e.message||e))) await envoi(hosts[1], f); else throw e; }
+      }
+      toast('✓ Plan classé dans le dossier n° '+dossier+' : version ré-ouvrable (.html) + Word.');
+    }catch(e){
+      files.forEach(function(f){ download(new Blob([f.body],{type:f.ct}), f.name); });
+      if(/Failed to fetch|NetworkError|load failed/i.test(String(e&&e.message||e))) toast('Passerelle non trouvée — plan téléchargé. Lancez la passerelle pour le classer.',true);
+      else toast('Classement refusé ('+String(e.message||e).slice(0,40)+') — plan téléchargé.',true);
     }
   }
   // Poignée factice : l'« Enregistrer » du plan écrit dedans, on récupère le HTML.
@@ -170,7 +178,7 @@
     if(!document.querySelector('meta[name="theme-color"]')){ var m=document.createElement('meta'); m.name='theme-color'; m.content='#173a63'; document.head.appendChild(m); }
     if(!document.querySelector('link[rel="apple-touch-icon"]')){ var a=document.createElement('link'); a.rel='apple-touch-icon'; a.href='icon-192.png'; document.head.appendChild(a); }
   }
-  var PLAN_ADIA_VERSION="v1.7 · 18/08/2026";
+  var PLAN_ADIA_VERSION="v1.8 · 19/08/2026";
   function ensureBadge(){
     if(!document.body) return;
     var v=document.getElementById('adia-plan-ver');
