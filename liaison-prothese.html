@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Fiche liaison prothèse – v1.0</title>
+<meta name="theme-color" content="#173a63">
+<link rel="icon" href="icon-192.png">
+<script src="references.js"></script>
+<style>
+  :root{ --bleu:#1a3e6f; --gris:#555; --bord:#333; --ok:#1e7a3a; --rouge:#c0392b; }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;color:#111;background:#eceff3;line-height:1.4}
+  .page{max-width:820px;margin:0 auto;background:#fff;padding:18px 20px 40px}
+
+  /* ---- barre d'actions (écran seulement) ---- */
+  .bar{background:#fff;padding:6px 0 10px;border-bottom:1px solid #ddd;margin-bottom:14px}
+  .btns{display:flex;gap:8px;flex-wrap:wrap}
+  .btns button{flex:1 1 auto;padding:11px 10px;font-size:15px;border:1px solid #ccc;background:#f4f6f9;border-radius:9px;cursor:pointer;min-width:120px}
+  .btns button.main{background:var(--bleu);color:#fff;border-color:var(--bleu);font-weight:700}
+  .btns button.green{background:#1a7a3a;color:#fff;border-color:#1a7a3a;font-weight:700}
+  .live{margin-top:8px;min-height:18px;font-size:13.5px;color:var(--gris);font-style:italic}
+  .opts{display:flex;gap:10px 18px;flex-wrap:wrap;align-items:center;margin:10px 0 0;font-size:14px}
+  .opts label{display:flex;gap:6px;align-items:center}
+  .opts select,.opts input{font-size:14px;padding:5px 8px;border:1px solid #cbd2dc;border-radius:7px;background:#fff}
+  .hint{font-size:12.5px;color:#777;margin-top:6px}
+  .backlink{font-size:13px}
+
+  /* ---- document ---- */
+  .doc{font-family:Georgia,"Times New Roman",serif}
+  .lh{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:1.5px solid #888;padding-bottom:6px;margin-bottom:14px}
+  .lh .l{font:700 15px/1.2 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif}
+  .lh .r{text-align:right;font-style:italic;font-size:12.5px;line-height:1.35}
+  .lh .r b{font-style:normal}
+  h1{font:700 21px/1.2 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;text-align:center;margin:6px 0 16px;letter-spacing:.3px}
+  .id{font-size:15.5px;margin:0 0 4px}
+  .id b{font-weight:700}
+  .idgrid{display:grid;grid-template-columns:1fr 1fr;gap:2px 20px}
+  .ed{display:inline-block;min-width:40px;padding:0 3px;border-bottom:1px dotted #aaa;outline:none}
+  .ed:focus{background:#fff8d6}
+  .delais{margin:8px 0 4px;font-size:15px}
+  .delais div{margin:2px 0}
+  .refs{margin:10px 0 0;font-size:14.5px}
+  .refs .t{font-weight:700;margin-top:6px}
+  .refs ul{margin:2px 0 0 18px;padding:0}
+  .refs li{margin:2px 0}
+  .warn{color:var(--rouge);font:700 15px/1.2 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;text-align:right;margin:4px 0}
+  h2{font:700 18px/1.2 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;margin:22px 0 4px;padding-bottom:3px;border-bottom:3px solid #2a5aa8}
+  .sys{font:700 13.5px/1.2 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;margin:10px 0 6px}
+  .sys span{color:#d2383e}
+  .grp{border:1px solid #666;border-radius:4px;padding:10px 12px;margin:10px 0 14px}
+  .grp .head{display:flex;align-items:center;gap:10px;margin-bottom:6px;font:700 14.5px/1.2 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif}
+  .plat{display:inline-block;padding:2px 8px;border-radius:4px;font:700 13px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif}
+  .qty{font-size:17px;font-weight:700;margin-left:auto}
+  .grp .row{display:grid;grid-template-columns:150px 1fr;gap:4px 12px;font-size:14.5px;padding:3px 0;border-top:1px dotted #ccc}
+  .grp .row:first-of-type{border-top:none}
+  .grp .row .k{font-weight:700}
+  .grp .row .v small{color:#555}
+  .dents{font-size:13px;color:#444;margin-left:6px}
+  .note{font-size:13px;color:#555;margin-top:6px}
+
+  /* ---- fiche de fabrication (labo) ---- */
+  .fab{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:10px 0}
+  .box{border:1.5px solid #333;padding:8px 10px;font-size:13.5px;line-height:1.35}
+  .box b{display:block;margin-bottom:2px}
+  .natures{display:grid;grid-template-columns:repeat(3,1fr);gap:3px 10px;font-size:13.5px;margin:6px 0}
+  .natures label{display:flex;gap:6px;align-items:center}
+  .odon{font:14.5px/1.3 "Courier New",monospace;letter-spacing:1px;text-align:center;margin:8px 0}
+  .odon span.on{background:#ffe66b;font-weight:700;padding:0 2px;border-radius:2px}
+  .etapes{width:100%;border-collapse:collapse;margin-top:8px;font-size:14px}
+  .etapes th,.etapes td{border:1.5px solid #333;padding:6px 8px;vertical-align:top;text-align:left}
+  .etapes td:first-child{width:110px}
+  .etapes td[contenteditable]{min-height:70px}
+
+  .foot{margin-top:28px;border-top:1.5px solid #888;padding-top:6px;text-align:center;font-size:12.5px;color:#333}
+  .empty{padding:30px 10px;text-align:center;color:#666;font-size:15px}
+  .empty a{color:var(--bleu)}
+
+  @media print{
+    body{background:#fff}
+    .page{max-width:none;padding:0}
+    .bar,.noprint{display:none !important}
+    .ed{border-bottom:none}
+    .grp{break-inside:avoid}
+    h2{break-after:avoid}
+    @page{size:A4;margin:14mm 14mm 12mm}
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="bar noprint">
+    <div class="btns">
+      <button id="classerAdia" class="green">📁 Classer dans le dossier du patient (ADIA)</button>
+      <button id="savefolder" class="main" style="display:none">💾 Word dans le dossier</button>
+      <button id="word">📝 Word</button>
+      <button id="print">🖨️ Imprimer</button>
+      <button id="reload" title="Recharger depuis la fiche d'intervention">↻ Depuis la fiche</button>
+    </div>
+    <div id="live" class="live"></div>
+    <div class="opts">
+      <label>Prothèse prévue
+        <select id="optProthese">
+          <option value="fixe">fixée (transvissée / scellée)</option>
+          <option value="locator">amovible sur Locator</option>
+        </select>
+      </label>
+      <label id="optHautWrap" style="display:none">Hauteur Locator
+        <select id="optHaut"></select>
+      </label>
+    </div>
+    <div class="hint">Tout le document est modifiable à la main avant impression : cliquez sur un texte pour le corriger. Plateforme et Multi-unit se règlent dans la <a class="backlink" href="fiche-intervention.html">fiche d'intervention</a>.</div>
+  </div>
+
+  <div id="doc" class="doc"></div>
+
+</div>
+
+<script>
+(function(){
+  "use strict";
+  var R=window.ADIA_REFS||{};
+  R.plateformes=R.plateformes||{}; R.systemes=R.systemes||{}; R.laboratoires=R.laboratoires||{}; R.multiunit=R.multiunit||{transfert:{lignes:[]},analogue:{}}; R.locator=R.locator||{};
+  var HANDOFF="adia-fiches-handoff-v1";
+  var ENTETE_KEY="adia-entete-v1";
+  var live=document.getElementById("live");
+
+  /* ---------- données d'entrée ---------- */
+  function loadHandoff(){
+    try{ return JSON.parse(localStorage.getItem(HANDOFF)||"null"); }catch(e){ return null; }
+  }
+  var data=loadHandoff();
+
+  /* ---------- utilitaires ---------- */
+  function esc(s){ return String(s==null?"":s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];}); }
+  function slug(s){ return String(s||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^A-Za-z0-9]+/g,"_").replace(/^_+|_+$/g,""); }
+  var MOIS=["janvier","février","mars","avril","mai","juin","juillet","août","septembre","octobre","novembre","décembre"];
+  var JOURS=["dimanche","lundi","mardi","mercredi","jeudi","vendredi","samedi"];
+  function parseDateFr(s){
+    var m=String(s||"").match(/(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{2,4})/);
+    if(m){ var y=+m[3]; if(y<100) y+=2000; return new Date(y,+m[2]-1,+m[1]); }
+    var iso=String(s||"").match(/(\d{4})-(\d{2})-(\d{2})/);
+    if(iso) return new Date(+iso[1],+iso[2]-1,+iso[3]);
+    return null;
+  }
+  function fmtLong(d){ return JOURS[d.getDay()]+" "+d.getDate()+" "+MOIS[d.getMonth()]+" "+d.getFullYear(); }
+  function fmtCourt(d){ return ("0"+d.getDate()).slice(-2)+"/"+("0"+(d.getMonth()+1)).slice(-2)+"/"+d.getFullYear(); }
+  function addMonths(d,n){ var x=new Date(d.getTime()); x.setMonth(x.getMonth()+n); return x; }
+  function dentsOf(str){ return String(str||"").match(/\b[1-4][1-8]\b/g)||[]; }
+  function arcade(dent){ var q=+String(dent)[0]; return (q===1||q===2)?"maxillaire":((q===3||q===4)?"mandibule":""); }
+
+  /* Ø et longueur depuis le texte libre « Ø × L / réf » de la fiche. */
+  function parseSpec(spec){
+    var s=String(spec||"").replace(",",".");
+    var o={d:null,l:null,ref:null,lot:null,plat:null};
+    var xy=s.match(/(\d+(?:\.\d+)?)\s*[x×X]\s*(\d+(?:\.\d+)?)/);
+    if(xy){ o.d=+xy[1]; o.l=+xy[2]; }
+    else{
+      var d=s.match(/(?:Ø|ø|diam(?:ètre|etre)?|\bd)\s*(\d+(?:\.\d+)?)/i); if(d) o.d=+d[1];
+      var l=s.match(/(\d+(?:\.\d+)?)\s*mm/i); if(l&&(!o.d||+l[1]!==o.d)) o.l=+l[1];
+    }
+    var p=s.match(/\b(NP|RP|WP)\b/i); if(p) o.plat=p[1].toUpperCase();
+    if(/\b3\.0\b/.test(s) && !xy) o.plat="3.0";
+    var ref=s.match(/r[ée]f\.?\s*:?\s*([0-9A-Z][0-9A-Z\-]{3,})/i); if(ref) o.ref=ref[1];
+    var lot=s.match(/lot\s*:?\s*([0-9A-Z][0-9A-Z\-]{3,})/i); if(lot) o.lot=lot[1];
+    return o;
+  }
+  function inferPlat(imp){
+    if(imp.plat && imp.plat!=="auto") return imp.plat;
+    var sp=parseSpec(imp.spec);
+    if(sp.plat) return sp.plat;
+    var sysInfo=(R.systemes||{})[imp.sys]||{famille:"autre"};
+    if(sysInfo.famille!=="conique") return null;
+    if(sp.d!=null){
+      if(sp.d<=3.1) return sysInfo.actif?"3.0":"NP";
+      if(sp.d<=3.6) return "NP";
+      if(sp.d<=5.2) return "RP";
+      return "WP";
+    }
+    return null;
+  }
+
+  /* ---------- modèle ---------- */
+  function buildModel(){
+    var d=data||{};
+    var implants=(d.implants||[]).filter(function(i){ return i && (i.dent||i.spec||i.sys); });
+    var m={ nom:d.nom||"", prenom:d.prenom||"", dossier:d.dossier||"", ddn:d.ddn||"",
+      dateStr:d.date||"", date:parseDateFr(d.date), correspondant:(d.correspondant||"").trim(),
+      implants:[], groupes:{}, mua:{n:0,dents:[]}, alertes:[], arcades:{maxillaire:false,mandibule:false}, inconnus:[] };
+    implants.forEach(function(imp){
+      var plat=inferPlat(imp), sp=parseSpec(imp.spec);
+      var dents=dentsOf(imp.dent); if(!dents.length) dents=[""];
+      dents.forEach(function(dent){
+        var a=arcade(dent); if(a) m.arcades[a]=true;
+        var line={dent:dent, sys:imp.sys||"", spec:imp.spec||"", plat:plat, mua:imp.mua||"", d:sp.d, l:sp.l, ref:sp.ref, lot:sp.lot};
+        m.implants.push(line);
+        if(line.mua && line.mua!=="non" && line.mua!==""){ m.mua.n++; m.mua.dents.push(dent); return; }
+        if(plat && R.plateformes[plat]){
+          var g=m.groupes[plat]||(m.groupes[plat]={plat:plat,n:0,dents:[],diam:{}});
+          g.n++; g.dents.push(dent); if(sp.d) g.diam[sp.d]=(g.diam[sp.d]||0)+1;
+          if(R.plateformes[plat].alerte && m.alertes.indexOf(R.plateformes[plat].alerte)<0) m.alertes.push(R.plateformes[plat].alerte);
+        } else m.inconnus.push(line);
+      });
+    });
+    return m;
+  }
+
+  /* ---------- rendu ---------- */
+  var optP=document.getElementById("optProthese"), optH=document.getElementById("optHaut");
+  (R.locator&&R.locator.hauteurs||[]).forEach(function(h){ var o=document.createElement("option"); o.value=h; o.textContent=h+" mm"; optH.appendChild(o); });
+  optH.value="3.0";
+
+
+  function entete(){
+    var c=R.cabinet||{}, e=null;
+    try{ e=JSON.parse(localStorage.getItem(ENTETE_KEY)); }catch(x){}
+    return '<div class="lh"><div class="l">'+esc(c.praticien||(e&&e.dentiste)||"")+'</div>'+
+      '<div class="r">'+esc(c.qualite||"")+'<br>'+esc(c.titre2||"")+'<br><b>'+esc(c.id||"")+'</b></div></div>';
+  }
+  function pied(){ var c=R.cabinet||{}; return '<div class="foot">'+esc(c.adresse||"")+'<br>Tel : '+esc(c.tel||"")+' – '+esc(c.mail||"")+'</div>'; }
+  function ed(v,ph){ return '<span class="ed" contenteditable="true" data-ph="'+esc(ph||"")+'">'+esc(v)+'</span>'; }
+  function platBadge(key){ var p=R.plateformes[key]||{}; return '<span class="plat" style="background:'+(p.couleur||"#eee")+';color:'+(p.texte||"#333")+'">'+esc(p.libelle||key)+'</span>'; }
+
+  function blocIdentite(m){
+    var h='<h1>FICHE LIAISON PROTHESE IMPLANTAIRE</h1>';
+    h+='<div class="idgrid"><div class="id"><b>NOM :</b> '+ed(m.nom,"Nom")+'</div><div class="id"><b>Prénom :</b> '+ed(m.prenom,"Prénom")+'</div></div>';
+    h+='<div class="id"><b>Date de la chirurgie :</b> '+ed(m.date?fmtLong(m.date):m.dateStr,"date")+'</div>';
+    if(m.alertes.length) h+='<div class="warn">'+m.alertes.map(esc).join(" · ")+'</div>';
+    var dm=R.delais_mois||{maxillaire:6,mandibule:3};
+    h+='<div class="delais"><b>Date pour débuter étape prothétique :</b>';
+    ["maxillaire","mandibule"].forEach(function(a){
+      if(!m.arcades[a] && (m.arcades.maxillaire||m.arcades.mandibule)) return;
+      var lab=a==="maxillaire"?"haut":"bas", dents=m.implants.filter(function(i){return arcade(i.dent)===a;}).map(function(i){return i.dent;}).join(", ");
+      var txt=lab+" "+dm[a]+" mois"+(dents?" ("+dents+")":"");
+      if(m.date) txt+=" → à partir du "+fmtCourt(addMonths(m.date,dm[a]));
+      h+='<div>'+ed(txt)+'</div>';
+    });
+    h+='</div>';
+    h+='<div class="refs"><div class="t">Références implants :</div><ul>';
+    m.implants.filter(function(i){return !(i.mua&&i.mua!=="non");}).forEach(function(i){
+      var parts=[]; if(i.dent) parts.push(i.dent+" :"); if(i.sys) parts.push(i.sys); if(i.plat) parts.push(i.plat);
+      if(i.d) parts.push("Ø"+String(i.d).replace(".",",")+(i.l?" × "+String(i.l).replace(".",",")+" mm":""));
+      if(i.ref) parts.push("réf "+i.ref); if(i.lot) parts.push("lot "+i.lot);
+      if(!i.d&&!i.ref&&i.spec) parts.push(i.spec);
+      h+='<li>'+ed(parts.join(" "))+'</li>';
+    });
+    if(!m.implants.length) h+='<li>'+ed("","dent : système, plateforme, Ø × L, réf, lot")+'</li>';
+    h+='</ul>';
+    if(m.mua.n){
+      h+='<div class="t">Références piliers Multi-unit :</div><ul>';
+      m.implants.filter(function(i){return i.mua&&i.mua!=="non";}).forEach(function(i){
+        h+='<li>'+ed((i.dent?i.dent+" : ":"")+"MUA "+(i.mua==="angule"?"angulé":(i.mua==="droit"?"droit":i.mua))+(i.spec?" — "+i.spec:""))+'</li>';
+      });
+      h+='</ul>';
+    }
+    h+='</div>';
+    return h;
+  }
+
+  function rowsTransfert(tr){
+    var out='';
+    (tr.lignes||[]).forEach(function(l){
+      var v=[]; if(l.ref) v.push("réf "+l.ref); if(l.court) v.push("court réf : "+l.court); if(l.long) v.push("long réf : "+l.long);
+      out+='<div class="row"><div class="k">'+esc(l.d)+'</div><div class="v">'+esc(v.join(" · "))+'</div></div>';
+    });
+    return out;
+  }
+
+  function blocMaterielFixe(m){
+    var h='<h2>Matériel nécessaire :</h2>';
+    var keys=Object.keys(m.groupes);
+    if(keys.length||m.mua.n) h+='<div class="sys">Système <span>NOBEL BIOCARE</span> — '+esc(R.transfert_longueurs||"")+'</div>';
+    keys.sort().forEach(function(k){
+      var g=m.groupes[k], p=R.plateformes[k];
+      var diams=Object.keys(g.diam).map(function(d){return "Ø"+String(d).replace(".",",")+(g.diam[d]>1?" ×"+g.diam[d]:"");}).join(", ");
+      h+='<div class="grp"><div class="head">'+platBadge(k)+'<span>'+esc(diams||"")+'</span><span class="dents">dent'+(g.dents.length>1?"s":"")+' '+esc(g.dents.filter(Boolean).join(", "))+'</span><span class="qty">x '+g.n+'</span></div>';
+      h+='<div class="row"><div class="k">'+esc(p.transfert.titre)+'</div><div class="v"><small>(moins de 4 implants solidarisés)</small></div></div>'+rowsTransfert(p.transfert);
+      h+='<div class="row"><div class="k">Ou scan body</div><div class="v">'+esc(p.scanbody)+'</div></div>';
+      h+='<div class="row"><div class="k">Analogue implantaire</div><div class="v">réf : '+esc(p.analogue)+' &nbsp; <b>x '+g.n+'</b></div></div>';
+      if(p.alerte) h+='<div class="note" style="color:var(--rouge);font-weight:700">'+esc(p.alerte)+'</div>';
+      h+='</div>';
+    });
+    if(m.mua.n){
+      var mu=R.multiunit;
+      h+='<div class="grp"><div class="head"><span class="plat" style="background:'+mu.couleur+';color:'+mu.texte+'">'+esc(mu.libelle)+'</span><span class="dents">dent'+(m.mua.dents.length>1?"s":"")+' '+esc(m.mua.dents.filter(Boolean).join(", "))+'</span><span class="qty">x '+m.mua.n+'</span></div>';
+      h+='<div class="row"><div class="k">'+esc(mu.transfert.titre)+'</div><div class="v"><small>même transfert, pilier droit ou angulé</small></div></div>'+rowsTransfert(mu.transfert);
+      h+='<div class="row"><div class="k">Ou scan body</div><div class="v">'+esc(mu.scanbody)+'</div></div>';
+      h+='<div class="row"><div class="k">Analogue MUA</div><div class="v">réf : '+esc(mu.analogue.unite)+' (unité) · '+esc(mu.analogue.par5)+' (par 5) &nbsp; <b>x '+m.mua.n+'</b></div></div></div>';
+    }
+    if(m.inconnus.length){
+      h+='<div class="grp"><div class="head">Plateforme à préciser<span class="qty">x '+m.inconnus.length+'</span></div>';
+      m.inconnus.forEach(function(i){ h+='<div class="row"><div class="k">'+esc(i.dent||"—")+'</div><div class="v">'+esc((i.sys||"")+" "+(i.spec||""))+' — indiquez la plateforme (NP / RP / WP / 3.0) dans la fiche d\'intervention</div></div>'; });
+      h+='</div>';
+    }
+    return h;
+  }
+
+  function blocMaterielLocator(m){
+    var L=R.locator||{}, haut=optH.value;
+    var h='<h2>Matériel nécessaire :</h2>';
+    Object.keys(m.groupes).sort().forEach(function(k){
+      var g=m.groupes[k], p=R.plateformes[k], pil=p.locator_piliers;
+      h+='<div class="grp"><div class="head">PILIER LOCATOR ABUTMENT '+platBadge(k)+'<span class="dents">dent'+(g.dents.length>1?"s":"")+' '+esc(g.dents.filter(Boolean).join(", "))+'</span><span class="qty">x '+g.n+'</span></div>';
+      if(pil){
+        Object.keys(pil).forEach(function(hh){
+          h+='<div class="row"><div class="k"'+(hh===haut?' style="background:#ffe66b"':'')+'>'+esc(hh)+' mm</div><div class="v">réf '+esc(pil[hh])+(hh===haut?' &nbsp;<b>← hauteur retenue</b>':'')+'</div></div>';
+        });
+      } else h+='<div class="row"><div class="k">Réf. pilier</div><div class="v">'+ed("","à préciser pour la plateforme "+k)+'</div></div>';
+      h+='</div>';
+    });
+    if(m.mua.n) h+='<div class="note">'+m.mua.n+' Multi-unit en place — le Locator se pose sur implant, pas sur MUA : vérifier l\'indication.</div>';
+    h+='<div class="grp"><div class="head">Éléments Locator® (Zest)</div>';
+    if(L.anneau) h+='<div class="row"><div class="k">Anneau Locator</div><div class="v">'+esc(L.anneau.libelle)+' — <b>Ref '+esc(L.anneau.ref)+'</b></div></div>';
+    if(L.transfert) h+='<div class="row"><div class="k">Transfert</div><div class="v">'+esc(L.transfert.libelle)+' — réf '+esc(L.transfert.ref)+'</div></div>';
+    if(L.analogue) h+='<div class="row"><div class="k">Analogue</div><div class="v">'+esc(L.analogue.libelle)+' — réf '+esc(L.analogue.ref)+'</div></div>';
+    if(L.instrumentation) h+='<div class="row"><div class="k">Instrumentation</div><div class="v">'+esc(L.instrumentation)+'</div></div>';
+    h+='</div>';
+    return h;
+  }
+
+
+  var model=null;
+  function render(){
+    var doc=document.getElementById("doc");
+    if(!data){ doc.innerHTML=entete()+'<div class="empty">Aucune intervention reçue.<br>Ouvrez la <a href="fiche-intervention.html">fiche d\'intervention</a> et cliquez sur « Fiche de liaison ».</div>'+pied(); return; }
+    model=buildModel();
+    var prothese=optP.value;
+    document.getElementById("optHautWrap").style.display=prothese==="locator"?"":"none";
+    var h=entete()+blocIdentite(model);
+    h+='<div class="id" style="margin-top:8px"><b>Praticien correspondant :</b> '+ed(model.correspondant,"nom du correspondant")+'</div>';
+    h+=(prothese==="locator"?blocMaterielLocator(model):blocMaterielFixe(model));
+    h+=pied();
+    doc.innerHTML=h;
+  }
+  optP.addEventListener("change",render); optH.addEventListener("change",render);
+  document.getElementById("reload").addEventListener("click",function(){ data=loadHandoff(); render(); live.textContent=data?"✓ Données rechargées depuis la fiche d'intervention.":"Aucune donnée dans la fiche d'intervention."; });
+  render();
+
+  /* ---------- sorties ---------- */
+  function buildTitle(){
+    var parts=[]; if(model&&model.dossier) parts.push(slug(model.dossier)); if(model&&model.nom) parts.push(slug(model.nom).toUpperCase());
+    if(model&&model.date) parts.push(model.date.getFullYear()+"-"+("0"+(model.date.getMonth()+1)).slice(-2)+"-"+("0"+model.date.getDate()).slice(-2));
+    parts.push("Fiche_liaison");
+    return parts.join("_");
+  }
+  function buildDocHTML(){
+    var css=document.querySelector("style").textContent;
+    var body=document.getElementById("doc").cloneNode(true);
+    body.querySelectorAll("[contenteditable]").forEach(function(e){ e.removeAttribute("contenteditable"); });
+    body.querySelectorAll("input[type=checkbox]").forEach(function(cb){ var s=document.createElement("span"); s.textContent=cb.checked?"☒ ":"☐ "; cb.parentNode.replaceChild(s,cb); });
+    return '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word"><head><meta charset="utf-8"><title>'+esc(buildTitle())+'</title><style>'+css+' body{background:#fff} .page{padding:0}</style></head><body>'+body.innerHTML+'</body></html>';
+  }
+  function downloadWord(){
+    var blob=new Blob(["\ufeff"+buildDocHTML()],{type:"application/msword"});
+    var a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download=buildTitle()+".doc"; document.body.appendChild(a); a.click();
+    setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); },500);
+  }
+  document.getElementById("word").addEventListener("click",downloadWord);
+  document.getElementById("print").addEventListener("click",function(){ window.print(); });
+
+  /* Même dossier patient que la fiche d'intervention (IndexedDB partagée). */
+  function idbOpen(){ return new Promise(function(res,rej){ var r=indexedDB.open("fiche-fs",1); r.onupgradeneeded=function(){ r.result.createObjectStore("h"); }; r.onsuccess=function(){res(r.result);}; r.onerror=function(){rej(r.error);}; }); }
+  function idbGet(){ return idbOpen().then(function(db){ return new Promise(function(res){ var t=db.transaction("h","readonly").objectStore("h").get("dir"); t.onsuccess=function(){res(t.result||null);}; t.onerror=function(){res(null);}; }); }); }
+  function idbPut(h){ return idbOpen().then(function(db){ return new Promise(function(res){ var t=db.transaction("h","readwrite").objectStore("h").put(h,"dir"); t.onsuccess=function(){res();}; t.onerror=function(){res();}; }); }); }
+  async function resolveDir(){
+    var h=await idbGet();
+    if(h){ var p=await h.queryPermission({mode:"readwrite"}); if(p!=="granted"){ p=await h.requestPermission({mode:"readwrite"}); } if(p==="granted") return h; }
+    h=await window.showDirectoryPicker({mode:"readwrite"}); await idbPut(h); return h;
+  }
+  async function saveToFolder(){
+    try{
+      var h=await resolveDir(); if(!h) return;
+      var name=buildTitle()+".doc";
+      var fh=await h.getFileHandle(name,{create:true}); var w=await fh.createWritable();
+      await w.write(new Blob(["\ufeff"+buildDocHTML()],{type:"application/msword"})); await w.close();
+      live.textContent="✓ Enregistré : "+name+" — dossier « "+(h.name||"choisi")+" ».";
+    }catch(e){ if(e&&e.name==="AbortError") return; live.textContent="Enregistrement impossible : "+((e&&e.message)||e); }
+  }
+  if(window.showDirectoryPicker){ var sf=document.getElementById("savefolder"); sf.style.display=""; sf.addEventListener("click",saveToFolder); }
+
+  /* Passerelle ADIA : même point d'entrée que la fiche d'intervention. */
+  async function classerViaPasserelle(){
+    var dossier=model&&model.dossier;
+    if(!dossier){ live.textContent="N° de dossier absent : renseignez-le dans la fiche d'intervention (Importer le patient ADIA)."; return; }
+    var hosts=["http://127.0.0.1:8765/classer-fiche","http://localhost:8765/classer-fiche"];
+    var blob=new Blob(["\ufeff"+buildDocHTML()],{type:"application/msword"}), name=buildTitle()+".doc";
+    for(var i=0;i<hosts.length;i++){
+      try{
+        var r=await fetch(hosts[i]+"?folder_id="+encodeURIComponent(dossier)+"&filename="+encodeURIComponent(name),{method:"POST",headers:{"Content-Type":"application/msword"},body:blob});
+        if(!r.ok){ var e={}; try{ e=await r.json(); }catch(_){ } throw new Error(e.error||("Erreur passerelle (HTTP "+r.status+")")); }
+        live.textContent="✓ Classé dans le dossier du patient n° "+dossier+" : "+name; return;
+      }catch(e){ if(i===hosts.length-1){ live.textContent=/Failed to fetch|NetworkError|load failed/i.test(String(e&&e.message||e))?"Passerelle non trouvée. Lancez « ADIA - Passerelle logiciel » et cochez « Activer lien local ADIA ».":"Classement impossible : "+(e&&e.message||e); } }
+    }
+  }
+  document.getElementById("classerAdia").addEventListener("click",classerViaPasserelle);
+})();
+</script>
+</body>
+</html>

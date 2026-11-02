@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<title>Fiche intervention – v5.9</title>
+<title>Fiche intervention – v6.0</title>
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#173a63">
 <link rel="icon" href="icon-192.png">
@@ -208,7 +208,7 @@
 <div class="page">
   <div class="hdr">
     <div id="entete"></div>
-    <div class="hdr-title">Fiche d'intervention<span id="appver">v5.9</span></div>
+    <div class="hdr-title">Fiche d'intervention<span id="appver">v6.0</span></div>
   </div>
 
   <!-- Barre de dictée -->
@@ -224,6 +224,7 @@
       <button id="share">📤 Envoyer le PDF</button>
       <button id="word">📝 Word</button>
       <button id="print">🖨️ Imprimer</button>
+      <button id="liaison" title="Génère la fiche de liaison prothèse (ou la fiche labo) à partir de cette intervention">🦷 Fiche de liaison</button>
       <button id="reset">↺ Réinitialiser</button>
     </div>
     <div id="changeFolderWrap" style="display:none; font-size:13px; margin-top:4px; color:#555">
@@ -795,19 +796,29 @@
       dent.placeholder="N° dent"; dent.value=it.dent||"";
       dent.addEventListener("input", function(){ implants[idx].dent=dent.value; saveImplants(); });
       var spec=document.createElement("input"); spec.type="text";
-      spec.placeholder="Ø × L / réf"; spec.value=it.spec||"";
+      spec.placeholder="Ø × L / réf / lot"; spec.value=it.spec||"";
       spec.addEventListener("input", function(){ implants[idx].spec=spec.value; saveImplants(); });
+      // Plateforme prothétique (pilote la fiche de liaison). « auto » = déduite du Ø.
+      var plat=document.createElement("select"); plat.className="impsys"; plat.title="Plateforme prothétique";
+      [["auto","Plateforme : auto"],["NP","NP"],["RP","RP"],["WP","WP"],["3.0","Active 3.0"]].forEach(function(o){
+        var op=document.createElement("option"); op.value=o[0]; op.textContent=o[1]; if((it.plat||"auto")===o[0]) op.selected=true; plat.appendChild(op); });
+      plat.addEventListener("change", function(){ implants[idx].plat=plat.value; saveImplants(); });
+      // Multi-unit déjà en place : la liaison bascule sur les composants MUA.
+      var mua=document.createElement("select"); mua.className="impsys"; mua.title="Pilier Multi-unit posé";
+      [["","MUA : non"],["droit","MUA droit"],["angule","MUA angulé"]].forEach(function(o){
+        var op=document.createElement("option"); op.value=o[0]; op.textContent=o[1]; if((it.mua||"")===o[0]) op.selected=true; mua.appendChild(op); });
+      mua.addEventListener("change", function(){ implants[idx].mua=mua.value; saveImplants(); });
       var del=document.createElement("button"); del.type="button"; del.className="del";
       del.textContent="✕"; del.title="Retirer";
       del.addEventListener("click", function(ev){ ev.preventDefault();
         implants.splice(idx,1); saveImplants(); renderImplants(); });
       row.appendChild(num); row.appendChild(sel); row.appendChild(dent);
-      row.appendChild(spec); row.appendChild(del);
+      row.appendChild(spec); row.appendChild(plat); row.appendChild(mua); row.appendChild(del);
       box.appendChild(row);
     });
   }
   function addImplant(sys, dent){
-    implants.push({sys:sys||"NobelActive", dent:dent||"", spec:""});
+    implants.push({sys:sys||"NobelActive", dent:dent||"", spec:"", plat:"auto", mua:""});
     saveImplants(); renderImplants();
     var box=document.getElementById("implantList");
     if(box.lastChild) flash(box.lastChild.querySelector("input"));
@@ -1290,6 +1301,26 @@
   }
   document.addEventListener("input", save, true);
   document.addEventListener("change", save, true);
+
+  // === Fiche de liaison prothèse : la fiche d'intervention est la source unique.
+  // On dépose les données dans localStorage (même origine) et on ouvre le gabarit,
+  // qui calcule plateformes, transferts, scan bodies, analogues et délais.
+  var HANDOFF="adia-fiches-handoff-v1";
+  function buildHandoff(){
+    function v(id){ var el=document.getElementById(id); return el?el.value.trim():""; }
+    return { version:1, exporte:new Date().toISOString(),
+      nom:v("nom"), prenom:v("prenom"), dossier:v("dossier"), date:v("date"), correspondant:v("correspondant"),
+      description:v("description"), avulsion:(document.getElementById("avul_oui")||{}).checked?"oui":((document.getElementById("avul_non")||{}).checked?"non":""),
+      implants:implants.map(function(i){ return {sys:i.sys||"", dent:i.dent||"", spec:i.spec||"", plat:i.plat||"auto", mua:i.mua||""}; }) };
+  }
+  (function(){
+    var b=document.getElementById("liaison"); if(!b) return;
+    b.addEventListener("click", function(){
+      if(!implants.length){ if(!confirm("Aucun implant saisi. Ouvrir quand même la fiche de liaison ?")) return; }
+      try{ localStorage.setItem(HANDOFF, JSON.stringify(buildHandoff())); }catch(e){}
+      window.open("liaison-prothese.html","adia-liaison");
+    });
+  })();
 
   function flash(el){
     if(!el) return;
