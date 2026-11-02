@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<title>Fiche liaison prothèse – v1.0</title>
+<title>Fiche liaison prothèse – v1.1</title>
 <meta name="theme-color" content="#173a63">
 <link rel="icon" href="icon-192.png">
 <script src="references.js"></script>
@@ -59,6 +59,10 @@
   .grp .row .k{font-weight:700}
   .grp .row .v small{color:#555}
   .dents{font-size:13px;color:#444;margin-left:6px}
+  .grp .piece{display:grid;grid-template-columns:80px 1fr;gap:6px 12px;align-items:center;margin:4px 0}
+  .grp .piece img{max-width:76px;max-height:110px;display:block;margin:auto}
+  .grp .piece .rows{min-width:0}
+  .sys img{height:26px;vertical-align:middle;margin-left:8px}
   .note{font-size:13px;color:#555;margin-top:6px}
 
   /* ---- fiche de fabrication (labo) ---- */
@@ -222,6 +226,7 @@
   }
   function pied(){ var c=R.cabinet||{}; return '<div class="foot">'+esc(c.adresse||"")+'<br>Tel : '+esc(c.tel||"")+' – '+esc(c.mail||"")+'</div>'; }
   function ed(v,ph){ return '<span class="ed" contenteditable="true" data-ph="'+esc(ph||"")+'">'+esc(v)+'</span>'; }
+  function pic(key,h){ var src=(R.images||{})[key]; return src?'<img src="'+src+'" alt=""'+(h?' style="max-height:'+h+'px"':'')+'>':''; }
   function platBadge(key){ var p=R.plateformes[key]||{}; return '<span class="plat" style="background:'+(p.couleur||"#eee")+';color:'+(p.texte||"#333")+'">'+esc(p.libelle||key)+'</span>'; }
 
   function blocIdentite(m){
@@ -272,23 +277,24 @@
   function blocMaterielFixe(m){
     var h='<h2>Matériel nécessaire :</h2>';
     var keys=Object.keys(m.groupes);
-    if(keys.length||m.mua.n) h+='<div class="sys">Système <span>NOBEL BIOCARE</span> — '+esc(R.transfert_longueurs||"")+'</div>';
+    if(keys.length||m.mua.n) h+='<div class="sys">Système <span>NOBEL BIOCARE</span> — '+esc(R.transfert_longueurs||"")+pic('icone-hex')+pic('icone-implant')+'</div>';
     keys.sort().forEach(function(k){
       var g=m.groupes[k], p=R.plateformes[k];
       var diams=Object.keys(g.diam).map(function(d){return "Ø"+String(d).replace(".",",")+(g.diam[d]>1?" ×"+g.diam[d]:"");}).join(", ");
       h+='<div class="grp"><div class="head">'+platBadge(k)+'<span>'+esc(diams||"")+'</span><span class="dents">dent'+(g.dents.length>1?"s":"")+' '+esc(g.dents.filter(Boolean).join(", "))+'</span><span class="qty">x '+g.n+'</span></div>';
-      h+='<div class="row"><div class="k">'+esc(p.transfert.titre)+'</div><div class="v"><small>(moins de 4 implants solidarisés)</small></div></div>'+rowsTransfert(p.transfert);
-      h+='<div class="row"><div class="k">Ou scan body</div><div class="v">'+esc(p.scanbody)+'</div></div>';
-      h+='<div class="row"><div class="k">Analogue implantaire</div><div class="v">réf : '+esc(p.analogue)+' &nbsp; <b>x '+g.n+'</b></div></div>';
+      h+='<div class="piece"><div>'+pic(p.img_transfert)+'</div><div class="rows"><div class="row"><div class="k">'+esc(p.transfert.titre)+'</div><div class="v"><small>(moins de 4 implants solidarisés)</small></div></div>'+rowsTransfert(p.transfert)+
+         '<div class="row"><div class="k">Ou scan body</div><div class="v">'+esc(p.scanbody)+'</div></div></div></div>';
+      h+='<div class="piece"><div>'+pic(p.img_analogue,80)+'</div><div class="rows"><div class="row"><div class="k">Analogue implantaire</div><div class="v">réf : '+esc(p.analogue)+' &nbsp; <b>x '+g.n+'</b></div></div></div></div>';
       if(p.alerte) h+='<div class="note" style="color:var(--rouge);font-weight:700">'+esc(p.alerte)+'</div>';
       h+='</div>';
     });
     if(m.mua.n){
       var mu=R.multiunit;
       h+='<div class="grp"><div class="head"><span class="plat" style="background:'+mu.couleur+';color:'+mu.texte+'">'+esc(mu.libelle)+'</span><span class="dents">dent'+(m.mua.dents.length>1?"s":"")+' '+esc(m.mua.dents.filter(Boolean).join(", "))+'</span><span class="qty">x '+m.mua.n+'</span></div>';
-      h+='<div class="row"><div class="k">'+esc(mu.transfert.titre)+'</div><div class="v"><small>même transfert, pilier droit ou angulé</small></div></div>'+rowsTransfert(mu.transfert);
-      h+='<div class="row"><div class="k">Ou scan body</div><div class="v">'+esc(mu.scanbody)+'</div></div>';
-      h+='<div class="row"><div class="k">Analogue MUA</div><div class="v">réf : '+esc(mu.analogue.unite)+' (unité) · '+esc(mu.analogue.par5)+' (par 5) &nbsp; <b>x '+m.mua.n+'</b></div></div></div>';
+      h+='<div class="piece"><div>'+pic(mu.img_pilier,70)+'</div><div class="rows"><div class="row"><div class="k">Piliers Multi-unit en place</div><div class="v">'+esc(m.implants.filter(function(i){return i.mua&&i.mua!=="non";}).map(function(i){return (i.dent?i.dent+" : ":"")+(i.mua==="angule"?"angulé":"droit");}).join(" · "))+'</div></div></div></div>';
+      h+='<div class="piece"><div>'+pic(mu.img_transfert)+'</div><div class="rows"><div class="row"><div class="k">'+esc(mu.transfert.titre)+'</div><div class="v"><small>même transfert, pilier droit ou angulé</small></div></div>'+rowsTransfert(mu.transfert)+
+         '<div class="row"><div class="k">Ou scan body</div><div class="v">'+esc(mu.scanbody)+'</div></div></div></div>';
+      h+='<div class="piece"><div>'+pic(mu.img_analogue,80)+'</div><div class="rows"><div class="row"><div class="k">Analogue MUA</div><div class="v">réf : '+esc(mu.analogue.unite)+' (unité) · '+esc(mu.analogue.par5)+' (par 5) &nbsp; <b>x '+m.mua.n+'</b></div></div></div></div></div>';
     }
     if(m.inconnus.length){
       h+='<div class="grp"><div class="head">Plateforme à préciser<span class="qty">x '+m.inconnus.length+'</span></div>';
@@ -304,19 +310,20 @@
     Object.keys(m.groupes).sort().forEach(function(k){
       var g=m.groupes[k], p=R.plateformes[k], pil=p.locator_piliers;
       h+='<div class="grp"><div class="head">PILIER LOCATOR ABUTMENT '+platBadge(k)+'<span class="dents">dent'+(g.dents.length>1?"s":"")+' '+esc(g.dents.filter(Boolean).join(", "))+'</span><span class="qty">x '+g.n+'</span></div>';
+      h+='<div class="piece"><div>'+pic(L.pilier_img)+'</div><div class="rows">';
       if(pil){
         Object.keys(pil).forEach(function(hh){
           h+='<div class="row"><div class="k"'+(hh===haut?' style="background:#ffe66b"':'')+'>'+esc(hh)+' mm</div><div class="v">réf '+esc(pil[hh])+(hh===haut?' &nbsp;<b>← hauteur retenue</b>':'')+'</div></div>';
         });
       } else h+='<div class="row"><div class="k">Réf. pilier</div><div class="v">'+ed("","à préciser pour la plateforme "+k)+'</div></div>';
-      h+='</div>';
+      h+='</div></div></div>';
     });
     if(m.mua.n) h+='<div class="note">'+m.mua.n+' Multi-unit en place — le Locator se pose sur implant, pas sur MUA : vérifier l\'indication.</div>';
     h+='<div class="grp"><div class="head">Éléments Locator® (Zest)</div>';
-    if(L.anneau) h+='<div class="row"><div class="k">Anneau Locator</div><div class="v">'+esc(L.anneau.libelle)+' — <b>Ref '+esc(L.anneau.ref)+'</b></div></div>';
+    if(L.anneau) h+='<div class="piece"><div>'+pic(L.anneau.img,70)+'</div><div class="rows"><div class="row"><div class="k">Anneau Locator</div><div class="v">'+esc(L.anneau.libelle)+' — <b>Ref '+esc(L.anneau.ref)+'</b></div></div></div></div>';
     if(L.transfert) h+='<div class="row"><div class="k">Transfert</div><div class="v">'+esc(L.transfert.libelle)+' — réf '+esc(L.transfert.ref)+'</div></div>';
     if(L.analogue) h+='<div class="row"><div class="k">Analogue</div><div class="v">'+esc(L.analogue.libelle)+' — réf '+esc(L.analogue.ref)+'</div></div>';
-    if(L.instrumentation) h+='<div class="row"><div class="k">Instrumentation</div><div class="v">'+esc(L.instrumentation)+'</div></div>';
+    if(L.instrumentation) h+='<div class="piece"><div>'+pic(L.img_instrumentation,70)+pic(L.img_tournevis,70)+'</div><div class="rows"><div class="row"><div class="k">Instrumentation</div><div class="v">'+esc(L.instrumentation)+'</div></div></div></div>';
     h+='</div>';
     return h;
   }
