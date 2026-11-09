@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<title>Fiche intervention – v6.0</title>
+<title>Fiche intervention – v6.1</title>
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#173a63">
 <link rel="icon" href="icon-192.png">
@@ -208,7 +208,7 @@
 <div class="page">
   <div class="hdr">
     <div id="entete"></div>
-    <div class="hdr-title">Fiche d'intervention<span id="appver">v6.0</span></div>
+    <div class="hdr-title">Fiche d'intervention<span id="appver">v6.1</span></div>
   </div>
 
   <!-- Barre de dictée -->
@@ -225,6 +225,8 @@
       <button id="word">📝 Word</button>
       <button id="print">🖨️ Imprimer</button>
       <button id="liaison" title="Génère la fiche de liaison prothèse (ou la fiche labo) à partir de cette intervention">🦷 Fiche de liaison</button>
+      <button id="passeport" title="Génère le passeport chirurgie implantaire (modèle de l'Ordre) à partir de cette intervention">🛂 Passeport</button>
+      <button id="tracabilite" title="Génère la feuille de traçabilité (lots, trousses, forets) à partir de cette intervention">🏷️ Traçabilité</button>
       <button id="reset">↺ Réinitialiser</button>
     </div>
     <div id="changeFolderWrap" style="display:none; font-size:13px; margin-top:4px; color:#555">
@@ -1311,16 +1313,20 @@
     return { version:1, exporte:new Date().toISOString(),
       nom:v("nom"), prenom:v("prenom"), dossier:v("dossier"), date:v("date"), correspondant:v("correspondant"),
       description:v("description"), avulsion:(document.getElementById("avul_oui")||{}).checked?"oui":((document.getElementById("avul_non")||{}).checked?"non":""),
-      implants:implants.map(function(i){ return {sys:i.sys||"", dent:i.dent||"", spec:i.spec||"", plat:i.plat||"auto", mua:i.mua||""}; }) };
+      implants:implants.map(function(i){ return {sys:i.sys||"", dent:i.dent||"", spec:i.spec||"", plat:i.plat||"auto", mua:i.mua||""}; }),
+      materiel:matModel.map(function(g){ return {titre:g.title||"", items:g.items.filter(function(it){ var e=document.getElementById(it.id); return e&&e.checked; }).map(function(it){ return {id:it.id, label:it.label}; })}; }).filter(function(g){ return g.items.length; }),
+      prf:prfModel.filter(function(it){ var e=document.getElementById(it.id); return e&&e.checked; }).map(function(it){ return {label:it.label, n:v(it.id+"_n")}; }) };
   }
-  (function(){
-    var b=document.getElementById("liaison"); if(!b) return;
+  [["liaison","liaison-prothese.html","adia-liaison","la fiche de liaison"],
+   ["passeport","passeport-implantaire.html","adia-passeport","le passeport implantaire"],
+   ["tracabilite","tracabilite.html","adia-tracabilite","la traçabilité"]].forEach(function(d){
+    var b=document.getElementById(d[0]); if(!b) return;
     b.addEventListener("click", function(){
-      if(!implants.length){ if(!confirm("Aucun implant saisi. Ouvrir quand même la fiche de liaison ?")) return; }
+      if(!implants.length){ if(!confirm("Aucun implant saisi. Ouvrir quand même "+d[3]+" ?")) return; }
       try{ localStorage.setItem(HANDOFF, JSON.stringify(buildHandoff())); }catch(e){}
-      window.open("liaison-prothese.html","adia-liaison");
+      window.open(d[1],d[2]);
     });
-  })();
+  });
 
   function flash(el){
     if(!el) return;

@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Passeport chirurgie implantaire – v1.0</title>
+<meta name="theme-color" content="#173a63">
+<link rel="icon" href="icon-192.png">
+<script src="fiches-commun.js"></script>
+<style>
+  :root{ --bleu:#1a3e6f; --gris:#555; --rose:#c4665c; --rose2:#e9b9b2; --rose3:#f6e3e0; }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;color:#111;background:#eceff3;line-height:1.35}
+  .page{max-width:900px;margin:0 auto;background:#fff;padding:18px 20px 40px}
+
+  .bar{background:#fff;padding:6px 0 10px;border-bottom:1px solid #ddd;margin-bottom:14px}
+  .btns{display:flex;gap:8px;flex-wrap:wrap}
+  .btns button{flex:1 1 auto;padding:11px 10px;font-size:15px;border:1px solid #ccc;background:#f4f6f9;border-radius:9px;cursor:pointer;min-width:120px}
+  .btns button.main{background:var(--bleu);color:#fff;border-color:var(--bleu);font-weight:700}
+  .btns button.green{background:#1a7a3a;color:#fff;border-color:#1a7a3a;font-weight:700}
+  .live{margin-top:8px;min-height:18px;font-size:13.5px;color:var(--gris);font-style:italic}
+  .hint{font-size:12.5px;color:#666;margin-top:6px}
+
+  .doc{font-size:12.5px}
+  .pp{display:grid;grid-template-columns:34% 1fr;gap:14px;align-items:start}
+  .titre{border:1.5px solid var(--rose);padding:16px 10px 12px;text-align:center;min-height:230px}
+  .titre .t{font-size:30px;line-height:1.25;color:var(--rose);font-weight:300}
+  .titre .m{font-size:9.5px;color:#333;margin-top:46px;line-height:1.3}
+  .bloc{border:1px solid var(--rose2);margin-top:10px}
+  .bande{background:var(--rose);color:#fff;font-weight:700;padding:3px 8px;font-size:13px}
+  .sous{background:var(--rose2);color:#fff;font-weight:700;padding:2px 8px;font-size:13px}
+  .corps{padding:5px 8px 7px}
+  .l{display:grid;grid-template-columns:38% 1fr;gap:2px 8px;padding:1.5px 0;align-items:baseline}
+  .l.g{grid-template-columns:20% 1fr}
+  .k{color:#333}
+  .k.b{font-weight:700;color:#111}
+  .petit{color:var(--rose);font-size:11.5px}
+  .v{border-bottom:1px dotted #bbb;min-height:16px}
+  .ed{display:inline-block;min-width:24px;outline:none}
+  .v .ed{display:block}
+  .ed:focus,.zone:focus{background:#fff8d6}
+  .gros{font-size:15px;font-weight:700}
+  .cases{display:flex;flex-wrap:wrap;gap:2px 16px;padding:2px 0}
+  .cases label{display:inline-flex;gap:4px;align-items:center;white-space:nowrap}
+  .cases label.r{color:var(--rose);font-weight:700}
+  input[type=checkbox]{margin:0;width:13px;height:13px}
+  .zone{min-height:54px;padding:4px 2px;font:11.5px/1.35 "Courier New",monospace;white-space:pre-wrap;outline:none;overflow-wrap:anywhere}
+  .zone.obs{min-height:210px;font:12.5px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif}
+  .zone:empty::before{content:attr(data-ph);color:#b9b9b9;font:italic 11.5px/1.3 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif}
+  .impn{font-weight:700;color:var(--rose);margin:6px 0 1px;border-top:1px solid var(--rose2);padding-top:5px}
+  .impn:first-child{border-top:none;margin-top:0;padding-top:0}
+  .empty{padding:30px 10px;text-align:center;color:#666;font-size:15px}
+  .empty a{color:var(--bleu)}
+
+  @media print{
+    body{background:#fff}
+    .page{max-width:none;padding:0}
+    .bar,.noprint{display:none !important}
+    .zone:empty::before{content:""}
+    .bloc{break-inside:avoid}
+    .bande,.sous,.titre{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    @page{size:A4;margin:11mm 11mm 10mm}
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="bar noprint">
+    <div class="btns">
+      <button id="classerAdia" class="green">📁 Classer dans le dossier du patient (ADIA)</button>
+      <button id="savefolder" class="main" style="display:none">💾 Word dans le dossier</button>
+      <button id="word">📝 Word</button>
+      <button id="print">🖨️ Imprimer</button>
+      <button id="reload" title="Recharger depuis la fiche d'intervention">↻ Depuis la fiche</button>
+    </div>
+    <div id="live" class="live"></div>
+    <div class="hint">Rempli depuis la fiche d'intervention. Tout reste modifiable avant impression : cliquez sur un texte pour le corriger, cochez ou décochez les cases. Le type de greffe et le caractère résorbable sont laissés à votre appréciation.</div>
+  </div>
+
+  <div id="doc" class="doc"></div>
+
+</div>
+
+<script>
+(function(){
+  "use strict";
+  var F=window.ADIA_FICHES, esc=F.esc;
+  var STORE="adia-passeport-v1", TRACA="adia-tracabilite-v1";
+  var doc=document.getElementById("doc");
+  function texte(el){ return el.innerText!=null ? el.innerText : el.textContent; }
+  var data=F.load();
+
+  function lire(k){ try{ return JSON.parse(localStorage.getItem(k)||"{}")||{}; }catch(e){ return {}; } }
+  function saisies(){ return lire(STORE)[F.cle(data)]||{}; }
+  function traca(){ return lire(TRACA)[F.cle(data)]||{}; }
+
+  function ed(id, defaut){ var s=saisies(), v=(id in s)?s[id]:(defaut==null?"":defaut);
+    return '<span class="ed" contenteditable="true" data-id="'+esc(id)+'">'+esc(v)+'</span>'; }
+  function cb(id, libelle, defaut, cls){ var s=saisies(), on=(id in s)?!!s[id]:!!defaut;
+    return '<label'+(cls?' class="'+cls+'"':'')+'><input type="checkbox" data-id="'+esc(id)+'"'+(on?" checked":"")+'> '+esc(libelle)+'</label>'; }
+  function L(k, v, gras, cls){ return '<div class="l'+(cls?" "+cls:"")+'"><div class="k'+(gras?" b":"")+'">'+esc(k)+'</div><div class="v">'+v+'</div></div>'; }
+  function zone(id, defaut, ph, cls){ var s=saisies(), v=(id in s)?s[id]:(defaut||"");
+    return '<div class="zone'+(cls?" "+cls:"")+'" contenteditable="true" data-id="'+esc(id)+'" data-ph="'+esc(ph||"")+'">'+esc(v)+'</div>'; }
+
+  function labels(re){ var out=[]; (data.materiel||[]).forEach(function(g){ if(re.test(g.titre||"")) (g.items||[]).forEach(function(it){ out.push(it.label); }); }); return out; }
+  function fabricantDe(label){ return /purgo/i.test(label)?"PURGO":(/creos/i.test(label)?"NOBEL BIOCARE":""); }
+  function nobel(sys){ return /nobel/i.test(sys||""); }
+
+  function render(){
+    if(!data || (!data.nom && !(data.implants||[]).length)){
+      doc.innerHTML='<div class="empty">Aucune intervention à reprendre.<br>Ouvrez la <a href="fiche-intervention.html">fiche d\u2019intervention</a>, remplissez-la, puis cliquez sur « 🛂 Passeport ».</div>';
+      return;
+    }
+    var d=F.parseDateFr(data.date), dateTxt=d?F.fmtJourCourt(d):(data.date||""), dateCourt=d?F.fmtCourt(d):(data.date||"");
+    var imps=data.implants||[], comb=labels(/comblement/i), mem=labels(/membrane/i), prf=(data.prf||[]).length>0, tr=traca();
+    var lotComb=((tr.comblement||"").match(/LOT\s*:?\s*([^\s·]+)/i)||[])[1]||"";
+    var dents=[]; imps.forEach(function(i){ F.dentsOf(i.dent).forEach(function(x){ if(dents.indexOf(x)<0) dents.push(x); }); });
+    var arcs={}; dents.forEach(function(x){ var a=F.arcade(x); if(a) arcs[a]=1; });
+    var duree = (arcs.maxillaire&&arcs.mandibule) ? "6 mois (maxillaire) · 3 mois (mandibule)" : (arcs.maxillaire?"6 mois":(arcs.mandibule?"3 mois":""));
+    var mua=imps.filter(function(i){ return i.mua && i.mua!=="non"; });
+
+    /* ----- colonne gauche ----- */
+    var g='';
+    g+='<div class="titre"><div class="t">Passeport<br>Chirurgie<br>implantaire</div><div class="m">Modèle proposé<br>par le conseil national de l\u2019Ordre des chirurgiens-dentistes</div></div>';
+    g+='<div class="bloc"><div class="bande">Chirurgien-dentiste</div><div class="corps">'
+      +'<div class="l g"><div class="k petit">Nom</div><div class="gros">'+ed("p_nom","BITTON")+'</div></div>'
+      +'<div class="l g"><div class="k petit">Prénom</div><div>'+ed("p_prenom","Jacques")+'</div></div>'
+      +'<div class="l g"><div class="k petit">Adresse</div><div>'+ed("p_adr","4 Rue Armand Bloch")+'<br>'+ed("p_ville","25200 MONTBELIARD")+'</div></div>'
+      +'<div class="l g" style="margin-top:8px"><div class="k petit">Téléphone</div><div>'+ed("p_tel","0381986170")+'</div></div>'
+      +'<div class="l g"><div class="k petit">Mail</div><div>'+ed("p_mail","secretariatdrbitton@orange.fr")+'</div></div>'
+      +'</div></div>';
+    g+='<div class="bloc"><div class="bande">Patient</div><div class="corps">'
+      +'<div class="l g"><div class="k petit">Nom</div><div class="gros">'+ed("pt_nom",(data.nom||"").toUpperCase())+'</div></div>'
+      +'<div class="l g"><div class="k petit">Prénom</div><div class="gros">'+ed("pt_prenom",data.prenom||"")+'</div></div>'
+      +'</div></div>';
+    g+='<div class="bloc"><div class="bande">Observations</div><div class="corps">'+zone("obs","","","obs")+'</div></div>';
+    var etiq='';
+    imps.forEach(function(i,k){ var sp=F.parseSpec(i.spec), l=[[i.sys,(i.spec||"").replace(/\s*\/?\s*r[ée]f.*$/i,"").trim()].filter(Boolean).join(" ")];
+      if(sp.ref) l.push("REF "+sp.ref); if(sp.lot) l.push("LOT "+sp.lot); etiq+=zone("et_imp"+k, l.join("\n"), "Étiquette de l\u2019implant"); });
+    if(!imps.length) etiq+=zone("et_imp0","","Étiquette de l\u2019implant");
+    g+='<div class="bloc"><div class="bande">Étiquettes <span style="font-weight:400">(à coller)</span></div><div class="corps"><div class="k b">Implant(s)</div>'+etiq
+      +(comb.length?'<div class="k b" style="margin-top:6px">Comblement '+esc(comb.join(", "))+' :</div>'+zone("et_comb", tr.comblement||"", "Étiquette du comblement"):'')
+      +(mem.length?'<div class="k b" style="margin-top:6px">Membrane '+esc(mem.join(", "))+' :</div>'+zone("et_mem", tr.membrane||"", "Étiquette de la membrane"):'')
+      +'</div></div>';
+
+    /* ----- colonne droite ----- */
+    var r='';
+    r+='<div class="bloc" style="margin-top:0"><div class="bande" style="font-size:15px">Préparation du site implantaire</div><div class="sous">Greffe(s) osseuse(s)</div><div class="corps">'
+      +L("Position", ed("pre_pos"), true)
+      +'<div class="cases">'+cb("pre_auto","Autogène(s)",false,"r")+'</div>'+L("Date", ed("pre_auto_date"), true)
+      +'<div class="cases">'+cb("pre_allo","Allogreffe(s)",false,"r")+cb("pre_xeno","Xénogreffe(s)",false,"r")+'</div>'
+      +L("Date", ed("pre_ax_date"), true)+L("Fabricant / Mandataire", ed("pre_ax_fab"))+L("N° de lot", ed("pre_ax_lot"))
+      +'<div class="cases">'+cb("pre_het","Hétérogreffe(s)",false,"r")+'</div>'+L("Date", ed("pre_het_date"), true)+L("Type matériau / origine", ed("pre_het_type"))
+      +'<div class="cases">'+cb("pre_avec","avec membrane")+cb("pre_sans","sans membrane")+cb("pre_prf","PRF")+cb("pre_res","résorbable")+cb("pre_nres","non résorbable")+'</div>'
+      +'</div></div>';
+
+    r+='<div class="bloc"><div class="bande" style="font-size:15px">Pose chirurgicale</div><div class="sous">Implant(s) dentaire(s)</div><div class="corps">';
+    r+='<div class="l"><div class="k">Pose immédiate (après extraction)</div><div class="cases">'+cb("imm_oui","oui",data.avulsion==="oui")+cb("imm_non","non",data.avulsion!=="oui")+'</div></div>';
+    r+=L("Date", ed("pose_date",dateTxt), true);
+    var liste=imps.length?imps:[{}];
+    liste.forEach(function(i,k){
+      var sp=F.parseSpec(i.spec), n=nobel(i.sys), p="i"+k+"_";
+      if(liste.length>1) r+='<div class="impn">Implant '+(k+1)+(i.dent?' — position '+esc(i.dent):'')+'</div>';
+      r+='<div class="l"><div class="k">Dénomination</div><div class="cases">'+cb(p+"endo","Endo-osseux",true)+cb(p+"cyl","Cylindrique")+cb(p+"cc","Cylindro-conique")+cb(p+"autre","Autre (préciser)")+'</div></div>'
+        +L("Marque", ed(p+"marque", i.sys||""))
+        +L("Fabricant / Mandataire", ed(p+"fab", n?"NOBEL BIOCARE":""))
+        +L("Téléphone", ed(p+"tel", n?"01.49.60.46.00":""))
+        +L("N° de lot", ed(p+"lot", sp.lot||""))
+        +L("Position", ed(p+"pos", i.dent||""), true)
+        +L("Longueur", ed(p+"long", sp.l!=null?String(sp.l).replace(".",","):""))
+        +L("Diamètre", ed(p+"diam", sp.d!=null?String(sp.d).replace(".",","):""))
+        +'<div class="l"><div class="k b">Composition</div><div class="cases">'+cb(p+"ti","Titane",true)+cb(p+"compa","Autre (préciser)")+'</div></div>';
+    });
+    r+='<div class="l" style="margin-top:4px"><div class="cases">'+cb("suivi","Suivi médical (fréquence à préciser)",true)+'</div><div class="v">'+ed("suivi_f","12 mois")+'</div></div>';
+    r+='</div>';
+
+    r+='<div class="sous">Greffe(s) osseuse(s)</div><div class="corps">'
+      +L("Position", ed("g_pos", comb.length?dents.join(", "):""), true)
+      +'<div class="cases">'+cb("g_auto","Autogène(s)",false,"r")+cb("g_allo","Allogreffe(s)",false,"r")+cb("g_xeno","Xénogreffe(s)",false,"r")+cb("g_het","Hétérogreffe(s)",false,"r")+'</div>'
+      +L("Date", ed("g_date", (comb.length||prf)?dateCourt:""), true)
+      +L("Matériau", ed("g_mat", comb.join(", ")))
+      +L("Fabricant / Mandataire", ed("g_fab", comb.map(fabricantDe).filter(function(x,i,a){return x&&a.indexOf(x)===i;}).join(", ")))
+      +L("N° de lot", ed("g_lot", lotComb))
+      +'<div class="cases">'+cb("g_avec","avec membrane",mem.length>0)+cb("g_sans","sans membrane")+cb("g_prf","PRF",prf)+cb("g_res","résorbable")+cb("g_nres","non résorbable")+'</div>'
+      +(mem.length?L("Membrane", ed("g_mem", mem.join(", "))):'')
+      +'</div>';
+
+    r+='<div class="sous">Mise en charge</div><div class="corps">'
+      +'<div class="cases">'+cb("mc_imm","immédiate")+cb("mc_dif","différée",true)+'</div>'
+      +L("Durée mise en nourrice / ostéo-intégration", ed("mc_duree", duree))
+      +L("Date", ed("mc_date", dateTxt), true)
+      +'</div>';
+
+    r+='<div class="sous">Pilier(s) transgingival(aux)</div><div class="corps">'
+      +L("Dénomination", ed("pil_den", mua.length?mua.map(function(i){ return "Multi-unit "+(i.mua==="angule"?"angulé":"droit")+(i.dent?" ("+i.dent+")":""); }).join(", "):""))
+      +L("Marque", ed("pil_marque", mua.length?"Multi-unit Abutment":""))
+      +L("Fabricant / Mandataire", ed("pil_fab", mua.length?"NOBEL BIOCARE":""))
+      +L("Téléphone", ed("pil_tel", mua.length?"01.49.60.46.00":""))
+      +L("N° de lot", ed("pil_lot"))
+      +'<div class="l"><div class="k b">Composition</div><div class="cases">'+cb("pil_ti","Titane",mua.length>0)+cb("pil_autre","Autre (préciser)")+'</div></div>'
+      +L("Date", ed("pil_date", mua.length?dateCourt:""), true)
+      +'</div></div>';
+
+    doc.innerHTML='<div class="pp"><div>'+g+'</div><div>'+r+'</div></div>';
+  }
+
+  function memoriser(el){
+    var id=el.getAttribute("data-id"); if(!id || !data) return;
+    var o=lire(STORE), k=F.cle(data); o[k]=o[k]||{};
+    o[k][id] = el.type==="checkbox" ? el.checked : texte(el).replace(/\u00a0/g," ").replace(/\n+$/,"");
+    try{ localStorage.setItem(STORE, JSON.stringify(o)); }catch(e){}
+  }
+  doc.addEventListener("input", function(e){ var el=e.target.closest("[data-id]"); if(el) memoriser(el); });
+  doc.addEventListener("change", function(e){ if(e.target.matches("input[type=checkbox][data-id]")) memoriser(e.target); });
+
+  var bar=F.barre({
+    titre:function(){ return F.titreFichier(data,"Passeport_implantaire"); },
+    dossier:function(){ return data&&data.dossier; },
+    recharger:function(){ data=F.load(); render(); bar.dire(data?"✓ Données rechargées depuis la fiche d\u2019intervention.":"Aucune donnée dans la fiche d\u2019intervention."); }
+  });
+  render();
+})();
+</script>
+</body>
+</html>
