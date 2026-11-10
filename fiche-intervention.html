@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<title>Fiche intervention – v6.1</title>
+<title>Fiche intervention – v6.2</title>
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#173a63">
 <link rel="icon" href="icon-192.png">
@@ -208,7 +208,7 @@
 <div class="page">
   <div class="hdr">
     <div id="entete"></div>
-    <div class="hdr-title">Fiche d'intervention<span id="appver">v6.1</span></div>
+    <div class="hdr-title">Fiche d'intervention<span id="appver">v6.2</span></div>
   </div>
 
   <!-- Barre de dictée -->
@@ -569,6 +569,10 @@
         var label=(d && d.patient_label || "").toString().trim();
         if(folder || label){ var nm=adiaApplyPatient(label,folder); say("Patient importé : "+nm+(folder?(" / "+folder):"")); return; }
         var cv=Number(d && d.captureVersion || 0);
+        if(cv>0 && window.adiaModeCabinet && window.adiaModeCabinet()){
+          say("Mode cabinet : la lecture d’écran par IA est désactivée (elle enverrait la capture hors du cabinet). Ouvrez la fiche du patient dans le logiciel, synchronisez avec Ctrl+Alt+A, ou saisissez le nom et le n° à la main.");
+          return;
+        }
         if(cv>0){
           say("Lecture de l'écran capturé par l'IA…");
           var p=await adiaReadCapture(bases[i]);
@@ -1542,7 +1546,7 @@
   }
 
   // --- Reconnaissance vocale ---
-  var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  var SR = (window.adiaModeCabinet && window.adiaModeCabinet()) ? null : (window.SpeechRecognition || window.webkitSpeechRecognition);
   var mic = document.getElementById("mic");
   var live = document.getElementById("live");
   var warn = document.getElementById("warn");
@@ -1550,7 +1554,7 @@
   var rec = null, running = false;
 
   if(!SR){
-    warn.style.display="block";
+    if(!(window.adiaModeCabinet && window.adiaModeCabinet())) warn.style.display="block";
     warn.textContent = "La dictée par commandes n'est pas disponible sur ce navigateur. "
       + "Astuce : tapez dans les champs, ou utilisez le micro du clavier de votre téléphone "
       + "(dictée native) directement dans chaque zone de texte. Sur iPhone, préférez Safari.";
@@ -1808,6 +1812,17 @@
 
 })();
 </script>
+<script>
+/* Mode cabinet (activé par défaut) : aucune donnée de patient ne quitte le cabinet.
+   Coupe la dictée IA (voix envoyée à un serveur), la lecture d'écran par IA et la dictée du navigateur (serveurs Google). */
+window.adiaModeCabinet=function(){ try{ return localStorage.getItem("adia-mode-cabinet")!=="off"; }catch(e){ return true; } };
+window.adiaReactiverIA=function(){
+  var ok=confirm("Réactiver les fonctions IA externes ?\n\nLa dictée IA et la lecture d'écran envoient la voix et des données du patient à un serveur extérieur au cabinet. "
+    +"À ne faire que si cet hébergement est certifié HDS et couvert par un contrat de sous-traitance.");
+  if(!ok) return; try{ localStorage.setItem("adia-mode-cabinet","off"); }catch(e){} location.reload();
+};
+window.adiaRetourCabinet=function(){ try{ localStorage.removeItem("adia-mode-cabinet"); }catch(e){} location.reload(); };
+</script>
 <script id="adia-dictee-ia">
 (function(){
   var SB_URL="https://gcnammzonyrhxhrmklrn.supabase.co";
@@ -1972,13 +1987,26 @@
     [].forEach.call(document.querySelectorAll("details"), function(d){ var sm=d.querySelector("summary"); if(sm && /commandes vocales/i.test(sm.textContent)) d.style.display="none"; });
     // Bouton IA unique, en HAUT et en grand :
     var wrap=document.createElement("div"); wrap.style.cssText="margin:0 0 6px";
+    var cab=window.adiaModeCabinet && window.adiaModeCabinet();
     var b=document.createElement("button"); b.id="iaDicteeBtn"; b.type="button";
     b.textContent="🎤 Dicter la fiche";
     b.style.cssText="width:100%;padding:16px;font:700 19px/1 sans-serif;color:#fff;background:#1a3e6f;border:none;border-radius:12px;cursor:pointer";
     b.title="Dictée naturelle : l'IA remplit la fiche (connexion ADIA + internet)";
-    b.addEventListener("click", function(){ toggleRecord(b); });
+    b.addEventListener("click", function(){ if(window.adiaModeCabinet && window.adiaModeCabinet()) return; toggleRecord(b); });
     var msg=document.createElement("div"); msg.id="iaDicteeMsg"; msg.style.cssText="font-size:14px;font-weight:600;color:#1a7a3a;margin-top:8px;min-height:20px;padding:6px 8px;border-radius:8px;background:#eef3fa";
-    wrap.appendChild(b); wrap.appendChild(msg);
+    if(cab){
+      var av=document.createElement("div"); av.id="modeCabinet";
+      av.style.cssText="font-size:13.5px;line-height:1.4;color:#334;background:#eef3fa;border:1px solid #cfdbec;border-radius:10px;padding:9px 11px";
+      av.innerHTML="🔒 <b>Mode cabinet</b> — aucune donnée du patient ne quitte le cabinet. La dictée IA est coupée : saisissez au clavier, ou utilisez la dictée intégrée de l’ordinateur dans chaque champ. <a href='#' id='reactIA' style='color:#1a3e6f'>Réactiver l’IA</a>";
+      wrap.appendChild(av);
+      setTimeout(function(){ var a=document.getElementById("reactIA"); if(a) a.addEventListener("click",function(e){ e.preventDefault(); window.adiaReactiverIA(); }); },0);
+    } else {
+      wrap.appendChild(b); wrap.appendChild(msg);
+      var rt=document.createElement("div"); rt.style.cssText="font-size:12.5px;color:#b0243a;margin-top:4px";
+      rt.innerHTML="⚠️ Fonctions IA externes actives : la voix est envoyée hors du cabinet. <a href='#' id='retourCab' style='color:#b0243a'>Revenir au mode cabinet</a>";
+      wrap.appendChild(rt);
+      setTimeout(function(){ var a=document.getElementById("retourCab"); if(a) a.addEventListener("click",function(e){ e.preventDefault(); window.adiaRetourCabinet(); }); },0);
+    }
     // Bouton dictée APRÈS les coordonnées patient (pour dicter tout ce qui suit) :
     var ident=document.querySelector(".ident");
     if(ident && ident.parentNode){ ident.parentNode.insertBefore(wrap, ident.nextSibling); }
