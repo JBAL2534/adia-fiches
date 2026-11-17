@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<title>Fiche intervention – v6.2</title>
+<title>Fiche intervention – v6.3</title>
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#173a63">
 <link rel="icon" href="icon-192.png">
@@ -208,7 +208,7 @@
 <div class="page">
   <div class="hdr">
     <div id="entete"></div>
-    <div class="hdr-title">Fiche d'intervention<span id="appver">v6.2</span></div>
+    <div class="hdr-title">Fiche d'intervention<span id="appver">v6.3</span></div>
   </div>
 
   <!-- Barre de dictée -->
@@ -219,6 +219,7 @@
     <div class="btns">
       <button id="classerAdia" style="flex-basis:100%;padding:14px;font:700 16px/1 sans-serif;color:#fff;background:#1a7a3a;border:none;border-radius:10px;cursor:pointer">📁 Classer dans le dossier du patient (ADIA)</button>
       <div id="classerMsg" style="flex-basis:100%;font-size:13px;color:#1a7a3a;min-height:16px"></div>
+      <div id="dossierSrv" style="flex-basis:100%;font-size:13px;color:#445;line-height:1.4"></div>
       <button id="savefolder" style="display:none">💾 Enregistrer (Word) dans le dossier</button>
       <button id="pdffolder" style="display:none">📄 PDF dans le dossier</button>
       <button id="share">📤 Envoyer le PDF</button>
@@ -553,6 +554,8 @@
     if(elPre) elPre.value=np.prenom;
     if(elDos && folder) elDos.value=folder;
     if(typeof save==="function") save();
+    window.__adiaIdentImportee=true;
+    if(elDos) elDos.dispatchEvent(new Event("change",{bubbles:true}));
     return (np.nom+" "+np.prenom).trim();
   }
   async function importPatientFromAdia(){
@@ -2030,5 +2033,166 @@ window.adiaRetourCabinet=function(){ try{ localStorage.removeItem("adia-mode-cab
 })();
 </script>
 
+<script id="adia-dossier-serveur">
+/* Chaque patient a SA fiche, rangée dans son dossier du serveur : docpatient/<n° de fiche clinique>/.
+   - Enregistrement automatique à chaque modification (plus rien ne se perd en changeant de patient).
+   - Changer de n° ouvre la fiche de ce patient, ou une fiche vierge s'il n'en a pas encore.
+   - Un raccourci « Ouvrir la fiche d'intervention » est déposé dans le dossier : double-clic = la fiche du patient.
+   Écriture : accès direct au dossier docpatient (choisi une fois par poste), sinon passerelle ADIA. Rien ne sort du cabinet. */
+(function(){
+  "use strict";
+  var FICHIER="ADIA-fiche-intervention.json", PREC="ADIA-fiche-intervention.precedente.json", RACC="Ouvrir la fiche d'intervention.html";
+  var KEYS=["fiche-intervention-v1","fiche-intervention-implants-v1","fiche-intervention-customs-v1"];
+  var PROP="adia-srv-proprietaire", URLF="https://jbal2534.github.io/adia-fiches/fiche-intervention.html";
+  var box=document.getElementById("dossierSrv"), elDos=document.getElementById("dossier");
+  if(!box || !elDos) return;
+  var FS=!!window.showDirectoryPicker;
+  function num(){ return (elDos.value||"").trim(); }
+  function esc(t){ return String(t).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];}); }
+  function fmt(iso){ try{ var d=new Date(iso); return d.toLocaleDateString("fr-FR")+" à "+d.toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"}); }catch(e){ return iso; } }
+  function vu(n){ return sessionStorage.getItem("adia-srv-"+n)||""; }
+  function setVu(n,v){ sessionStorage.setItem("adia-srv-"+n, v); }
+  function proprio(){ return localStorage.getItem(PROP)||""; }
+  function setProprio(n){ localStorage.setItem(PROP, n); }
+  function snap(){ var d={}; KEYS.forEach(function(k){ d[k]=localStorage.getItem(k); }); return d; }
+  function poser(d){ KEYS.forEach(function(k){ var v=d&&d[k]; if(v==null) localStorage.removeItem(k); else localStorage.setItem(k,v); }); }
+  function dire(t, err){ var m=document.getElementById("srvMsg"); if(!m) return; m.textContent=t; m.style.color=err?"#b0243a":"#1a7a3a"; }
+
+  /* ---- dossier « docpatient », mémorisé sur ce poste ---- */
+  function idb(){ return new Promise(function(res,rej){ var r=indexedDB.open("fiche-fs",1); r.onupgradeneeded=function(){ r.result.createObjectStore("h"); }; r.onsuccess=function(){res(r.result);}; r.onerror=function(){rej(r.error);}; }); }
+  function getRoot(){ if(window.__adiaTestRoot) return Promise.resolve(window.__adiaTestRoot); return idb().then(function(db){ return new Promise(function(res){ var t=db.transaction("h","readonly").objectStore("h").get("root"); t.onsuccess=function(){res(t.result||null);}; t.onerror=function(){res(null);}; }); }); }
+  function putRoot(h){ return idb().then(function(db){ return new Promise(function(res){ var t=db.transaction("h","readwrite").objectStore("h").put(h,"root"); t.onsuccess=function(){res();}; t.onerror=function(){res();}; }); }); }
+  async function perm(h, ask){ var o={mode:"readwrite"}; var p=await h.queryPermission(o); if(p==="granted") return true; if(!ask) return false; return (await h.requestPermission(o))==="granted"; }
+  async function root(ask){ if(!FS) return null; var h=await getRoot(); if(!h) return null; return (await perm(h,ask)) ? h : null; }
+  async function sous(r, n, creer){ try{ return await r.getDirectoryHandle(n, {create:!!creer}); }catch(e){ return null; } }
+  async function lire(n){
+    var r=await root(false); if(!r) return {acces:false};
+    var d=await sous(r,n,false); if(!d) return {acces:true, o:null};
+    try{ return {acces:true, o:JSON.parse(await (await (await d.getFileHandle(FICHIER)).getFile()).text())}; }catch(e){ return {acces:true, o:null}; }
+  }
+
+  async function etat(){
+    if(!FS){ box.innerHTML="🗄️ La fiche s\u2019enregistre dans le dossier du patient par la passerelle ADIA. <span id='srvMsg'></span><div id='srvOffre'></div>"; return; }
+    var h=await getRoot(), ok=h && await perm(h,false);
+    box.innerHTML=(h
+      ? "🗄️ Dossiers patients : « "+esc(h.name)+" »"+(ok?" — enregistrement automatique":" — <a href='#' id='srvAuth'>autoriser l\u2019accès</a>")+" · <a href='#' id='srvChg'>changer</a>"
+      : "🗄️ Pour que chaque patient garde sa fiche : <a href='#' id='srvChg'>choisir le dossier « docpatient » du serveur</a> (une seule fois sur ce poste).")
+      +" <span id='srvMsg'></span><div id='srvOffre'></div>";
+    var a=document.getElementById("srvChg");
+    if(a) a.addEventListener("click", async function(e){
+      e.preventDefault();
+      try{ var nh=await window.showDirectoryPicker({mode:"readwrite", id:"adia-docpatient"}); await putRoot(nh); await etat(); await ouvrir(num(), false); }
+      catch(err){ if(!(err&&err.name==="AbortError")) dire("Choix du dossier impossible : "+(err&&err.message||err), true); }
+    });
+    var b=document.getElementById("srvAuth");
+    if(b) b.addEventListener("click", async function(e){ e.preventDefault(); var r=await root(true); await etat(); if(r) await ouvrir(num(), false); });
+  }
+
+  /* ---- écriture dans le dossier du patient ---- */
+  var bloque=false;   // conflit en attente de décision
+  async function ecrire(n, donnees, force){
+    if(!n || bloque) return false;
+    var o={type:"fiche-intervention", version:2, dossier:n, enregistre:new Date().toISOString(), donnees:donnees}, txt=JSON.stringify(o);
+    var r=await root(false);
+    if(r){
+      try{
+        var d=await sous(r, n, true), prec=null;
+        try{ prec=await (await d.getFileHandle(FICHIER)).getFile(); }catch(e){}
+        if(prec){
+          var ancien=await prec.text(), po={}; try{ po=JSON.parse(ancien); }catch(e){}
+          if(!force && po.enregistre && vu(n) && po.enregistre>vu(n)){ conflit(n, po); return false; }
+          if(!vu(n) || vu(n)!==po.enregistre){ var bk=await (await d.getFileHandle(PREC,{create:true})).createWritable(); await bk.write(ancien); await bk.close(); }
+        } else {
+          try{ var rw=await (await d.getFileHandle(RACC,{create:true})).createWritable();
+            await rw.write("<!DOCTYPE html><meta charset='utf-8'><title>Fiche d\u2019intervention – "+esc(n)+"</title><meta http-equiv='refresh' content='0;url="+URLF+"?dossier="+encodeURIComponent(n)+"'><p>Ouverture de la fiche du patient n° "+esc(n)+"… <a href='"+URLF+"?dossier="+encodeURIComponent(n)+"'>cliquer ici si rien ne se passe</a></p>"); await rw.close(); }catch(e){}
+        }
+        var w=await (await d.getFileHandle(FICHIER,{create:true})).createWritable(); await w.write(txt); await w.close();
+        setVu(n, o.enregistre); return true;
+      }catch(e){ /* sinon : passerelle */ }
+    }
+    var hosts=["http://127.0.0.1:8765/classer-fiche","http://localhost:8765/classer-fiche"];
+    for(var i=0;i<hosts.length;i++){
+      try{
+        var res=await fetch(hosts[i]+"?folder_id="+encodeURIComponent(n)+"&filename="+encodeURIComponent(FICHIER),{method:"POST",headers:{"Content-Type":"application/json"},body:new Blob([txt],{type:"application/json"})});
+        if(res.ok){ setVu(n, o.enregistre); return true; }
+      }catch(e){}
+    }
+    return false;
+  }
+
+  function conflit(n, po){
+    bloque=true;
+    var off=document.getElementById("srvOffre"); if(!off) return;
+    off.innerHTML="<div style='margin-top:6px;padding:8px 10px;border:1px solid #e3a0a8;background:#fdf0f1;border-radius:8px'>⚠️ La fiche du dossier n° "+esc(n)+" a été modifiée sur un autre poste le "+esc(fmt(po.enregistre))+". L\u2019enregistrement automatique est suspendu."
+      +" <button type='button' id='cfOuvrir' style='margin:4px 4px 0 6px;padding:6px 10px;border-radius:7px;border:1px solid #1a3e6f;background:#1a3e6f;color:#fff;font-weight:700;cursor:pointer'>Afficher l\u2019autre version</button>"
+      +"<button type='button' id='cfGarder' style='margin-top:4px;padding:6px 10px;border-radius:7px;border:1px solid #b0243a;background:#fff;color:#b0243a;cursor:pointer'>Garder la mienne</button></div>";
+    document.getElementById("cfOuvrir").addEventListener("click", function(){ poser(po.donnees); setVu(n, po.enregistre); setProprio(n); location.reload(); });
+    document.getElementById("cfGarder").addEventListener("click", async function(){ bloque=false; off.innerHTML=""; if(await ecrire(n, snap(), true)){ dernier=JSON.stringify(snap()); dire("✓ Votre version est enregistrée ; l\u2019autre est gardée en copie dans le dossier."); } });
+  }
+
+  /* ---- enregistrement automatique ---- */
+  var dernier=JSON.stringify(snap()), propre=snap(), enCours=false;
+  setInterval(async function(){
+    var n=num(), cur=JSON.stringify(snap());
+    if(!n || n!==proprio()) return;             // changement de patient en cours : géré par ouvrir()
+    propre=snap();
+    if(cur===dernier || enCours || bloque) return;
+    enCours=true;
+    var ok=await ecrire(n, JSON.parse(cur), false);
+    enCours=false;
+    if(ok){ dernier=cur; dire("✓ Enregistré dans le dossier n° "+n+" à "+new Date().toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"})+"."); }
+    else if(!bloque){ dire("⚠️ Pas d\u2019accès au dossier du patient : choisissez « docpatient » ou lancez la passerelle ADIA.", true); }
+  }, 2500);
+
+  /* ---- ouvrir la fiche d'un patient (ou une fiche vierge) ---- */
+  async function ouvrir(n, depuisChangement){
+    var off=document.getElementById("srvOffre");
+    if(!n){ return; }
+    var ancien=proprio();
+    if(depuisChangement && ancien && ancien!==n){
+      // 1. on range la fiche du patient précédent dans SON dossier
+      if(JSON.stringify(propre)!==dernier || !vu(ancien)){
+        var sauve=await ecrire(ancien, propre, false);
+        if(!sauve && !confirm("La fiche du patient n° "+ancien+" n\u2019a pas pu être enregistrée dans son dossier. Passer quand même au patient n° "+n+" ? (elle serait perdue)")){ elDos.value=ancien; return; }
+      }
+    }
+    var lu=await lire(n);
+    if(lu.o){
+      if(n===ancien && vu(n)===lu.o.enregistre){ dire("✓ Fiche du dossier n° "+n+" à jour."); return; }
+      if(n===ancien && !depuisChangement){
+        // même patient, mais une version plus récente existe ailleurs
+        if(lu.o.enregistre>(vu(n)||"")){ conflit(n, lu.o); }
+        return;
+      }
+      poser(lu.o.donnees); setVu(n, lu.o.enregistre); setProprio(n); location.reload(); return;
+    }
+    if(depuisChangement && ancien && ancien!==n){
+      // nouveau patient sans fiche : fiche vierge, en gardant l'identité qui vient d'être saisie ou importée
+      // l'identité n'est gardée que si elle vient d'être importée pour CE patient ; une saisie manuelle du n° repart d'une fiche vide
+      var imp=!!window.__adiaIdentImportee; window.__adiaIdentImportee=false;
+      var garde={nom:"", prenom:"", dossier:n};
+      if(imp){ var en=document.getElementById("nom"), ep=document.getElementById("prenom"); garde.nom=en?en.value:""; garde.prenom=ep?ep.value:""; }
+      localStorage.setItem(KEYS[0], JSON.stringify(garde)); localStorage.setItem(KEYS[1],"[]"); localStorage.setItem(KEYS[2],"[]");
+      setProprio(n); location.reload(); return;
+    }
+    if(!ancien) setProprio(n);
+    if(lu.acces) dire("Nouvelle fiche pour le dossier n° "+n+" : elle s\u2019enregistrera automatiquement.");
+  }
+
+  elDos.addEventListener("change", function(){ ouvrir(num(), true); });
+
+  /* ---- démarrage ---- */
+  (async function(){
+    await etat();
+    var q=new URLSearchParams(location.search).get("dossier");
+    if(q && q.trim() && q.trim()!==num()){
+      if(!proprio() && num()) setProprio(num());
+      elDos.value=q.trim(); elDos.dispatchEvent(new Event("input",{bubbles:true})); await ouvrir(q.trim(), true); return;
+    }
+    if(!proprio() && num()) setProprio(num());
+    await ouvrir(num(), false);
+  })();
+})();
+</script>
 </body>
 </html>
