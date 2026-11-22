@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<title>Fiche de laboratoire – v1.0</title>
+<title>Fiche de laboratoire – v1.1</title>
 <meta name="theme-color" content="#173a63">
 <link rel="icon" href="icon-192.png">
 <script src="fiches-commun.js"></script>
@@ -73,10 +73,10 @@
       <button id="savefolder" class="main" style="display:none">💾 Word dans le dossier</button>
       <button id="word">📝 Word</button>
       <button id="print">🖨️ Imprimer</button>
-      <button id="reload" title="Recharger depuis la fiche d'intervention">↻ Depuis la fiche</button>
+      <button id="reload" title="Recharger depuis le plan de traitement ou la fiche d'intervention">↻ Recharger</button>
     </div>
     <div id="live" class="live"></div>
-    <div class="hint">Remplie depuis les actes de prothèse de la fiche d'intervention. Tout reste modifiable avant impression : cliquez sur un texte pour le corriger. Le nom du laboratoire est retenu d'un patient à l'autre.</div>
+    <div class="hint">Remplie depuis les actes de prothèse du plan de traitement ou de la fiche d'intervention. Tout reste modifiable avant impression : cliquez sur un texte pour le corriger. Le nom du laboratoire est retenu d'un patient à l'autre.</div>
   </div>
 
   <div id="doc" class="doc"></div>
@@ -90,7 +90,43 @@
   var STORE="omni-labo-v1", LABO="omni-labo-nom-v1";
   var doc=document.getElementById("doc");
   function texte(el){ return el.innerText!=null ? el.innerText : el.textContent; }
-  var data=F.load();
+  /* ---- deux sources possibles : la fiche d'intervention, ou directement le plan de traitement ---- */
+  /* Codes du plan qui ne concernent pas le laboratoire : tout le reste est proposé comme travail. */
+  var HORS_LABO=/(^|[\s,;+\/])(d[ée]t|surf|compo|endo|rte|ext|exp|imp|impna|combl|bprf|porcin|bovin|biobank|d[ée]coupe|s[ée]parer racines|pilier)(?=$|[\s,;+\/])/gi;
+  var CODES={ "ccm":["Couronne","Céramo-métallique"], "ccc":["Couronne","Céramo-céramique"], "ic":["Inlay-core",""], "inlay":["Inlay-onlay",""],
+    "bridge":["Bridge",""], "pap":["Prothèse amovible partielle",""], "pac":["Prothèse amovible complète",""], "gouttière":["Gouttière",""], "facette":["Facette",""] };
+  function depuisPlan(){
+    var o=null; try{ o=JSON.parse(localStorage.getItem("omni_plan_current")||"null"); }catch(e){}
+    if(!o || !o.p) return null;
+    var groupes={}, ordre=[];
+    Object.keys(o.teeth||{}).sort().forEach(function(dent){
+      var reste=String(o.teeth[dent]||""), avant;
+      do{ avant=reste; reste=reste.replace(HORS_LABO,"$1"); }while(reste!==avant);
+      reste=reste.replace(/^[\s,;+\/]+|[\s,;+\/]+$/g,"").replace(/\s+/g," ");
+      if(!reste) return;
+      if(!groupes[reste]){ groupes[reste]=[]; ordre.push(reste); }
+      groupes[reste].push(dent);
+    });
+    var actes=ordre.map(function(code){
+      var c=CODES[code.toLowerCase()];
+      return {disc:"Prothèse", acte:c?c[0]:code, dent:groupes[code].join(", "), note:c?c[1]:""};
+    });
+    var d=F.parseDateFr(o.p.date);
+    return { source:"plan", nom:(o.p.nom||"").trim(), prenom:"", dossier:(o.p.dossier||"").trim(), date:d?F.fmtCourt(d):F.fmtCourt(new Date()),
+      correspondant:o.p.correspondant||"", actes:actes, materiel:[], implants:[] };
+  }
+  function aProthese(x){ return !!(x && (x.actes||[]).some(function(a){ return /proth/i.test(a.disc||""); })); }
+  function charger(){
+    var fiche=F.load(), plan=depuisPlan(), veut=null;
+    try{ veut=sessionStorage.getItem("omni-labo-source"); }catch(e){}
+    if(/[?&]source=plan\b/.test(location.search)) veut="plan";
+    if(veut==="plan" && plan) return plan;
+    if(veut==="fiche" && fiche) return fiche;
+    if(aProthese(fiche)) return fiche;
+    if(aProthese(plan)) return plan;
+    return fiche || plan;
+  }
+  var data=charger();
 
   function lire(k){ try{ return JSON.parse(localStorage.getItem(k)||"{}")||{}; }catch(e){ return {}; } }
   function saisies(){ return lire(STORE)[F.cle(data)]||{}; }
@@ -117,7 +153,7 @@
 
   function render(){
     if(!data || (!data.nom && !(data.actes||[]).length)){
-      doc.innerHTML='<div class="empty">Aucune intervention à reprendre.<br>Ouvrez la <a href="fiche-omnipratique.html">fiche d’intervention</a>, saisissez les actes, puis revenez ici.</div>';
+      doc.innerHTML='<div class="empty">Aucune intervention à reprendre.<br>Saisissez les actes dans le <a href="plan-omnipratique.html">plan de traitement</a> ou la <a href="fiche-omnipratique.html">fiche d’intervention</a>, puis revenez ici.</div>';
       return;
     }
     var d=F.parseDateFr(data.date), auj=new Date();
@@ -128,21 +164,24 @@
     h+='<div class="deux">'
       +'<div class="l"><span class="k">Laboratoire :</span>'+ed("labo", laboNom, "nom du laboratoire")+'</div>'
       +'<div class="l"><span class="k">Envoyé le :</span>'+ed("envoi", F.fmtCourt(auj))+'</div>'
-      +'<div class="l"><span class="k">Patient :</span>'+ed("patient", ((data.nom||"").toUpperCase()+" "+(data.prenom||"")).trim())+'</div>'
+      +'<div class="l"><span class="k">Patient :</span>'+ed("patient", data.source==="plan" ? (data.nom||"") : ((data.nom||"").toUpperCase()+" "+(data.prenom||"")).trim())+'</div>'
       +'<div class="l"><span class="k">N° de dossier :</span>'+ed("dossier", data.dossier||"")+'</div>'
       +'<div class="l"><span class="k">Date de l’acte :</span>'+ed("dateacte", d?F.fmtCourt(d):(data.date||""))+'</div>'
       +'<div class="l"><span class="k">Praticien :</span>'+ed("praticien", F.entete().dentiste||"")+'</div>'
       +'</div>';
 
+    var autre=(data.source==="plan") ? F.load() : depuisPlan();
+    h+='<div class="hint noprint" style="margin:8px 0 0">Préparée depuis <b>'+(data.source==="plan"?"le plan de traitement":"la fiche d’intervention")+'</b>.'
+      +(autre?' <a href="#" id="autreSource" style="color:#173a63">Utiliser plutôt '+(data.source==="plan"?"la fiche d’intervention":"le plan de traitement")+'</a>':'')+'</div>';
     h+='<h3>Travail demandé</h3><table><tr><th style="width:13%">Dent(s)</th><th style="width:31%">Travail</th><th style="width:22%">Matériau</th><th style="width:12%">Teinte</th><th>Précision</th></tr>';
     var lignes=travaux.length?travaux:[{acte:"",dent:"",note:""}];
     lignes.forEach(function(a,i){
       h+='<tr><td>'+ed("t"+i+"_dent", a.dent||"")+'</td><td>'+ed("t"+i+"_travail", (a.acte||"").replace(/\s*:\s*(pr[ée]paration et empreinte|pose)\s*$/i,""))+'</td>'
-        +'<td>'+ed("t"+i+"_mat", materiauDe(a.note))+'</td><td>'+ed("t"+i+"_teinte", teinteDe(a.note))+'</td><td>'+ed("t"+i+"_note", a.note||"")+'</td></tr>';
+        +'<td>'+ed("t"+i+"_mat", materiauDe(a.note)||(data.source==="plan"?a.note:""))+'</td><td>'+ed("t"+i+"_teinte", teinteDe(a.note))+'</td><td>'+ed("t"+i+"_note", data.source==="plan"?"":(a.note||""))+'</td></tr>';
     });
     h+='<tr><td>'+ed("tx_dent","")+'</td><td>'+ed("tx_travail","")+'</td><td>'+ed("tx_mat","")+'</td><td>'+ed("tx_teinte","")+'</td><td>'+ed("tx_note","")+'</td></tr>';
     h+='</table>';
-    if(!travaux.length) h+='<div class="hint noprint">Aucun acte de prothèse dans la fiche d’intervention : remplissez le tableau à la main, ou ajoutez l’acte dans la fiche.</div>';
+    if(!travaux.length) h+='<div class="hint noprint">Aucun travail de prothèse trouvé : remplissez le tableau à la main, ou saisissez l’acte dans le plan de traitement ou la fiche d’intervention.</div>';
 
     h+='<h3>Éléments joints</h3><div class="cases">'
       +cb("j_optique","Empreinte optique (fichier envoyé)", coche(/optique/i))
@@ -175,11 +214,17 @@
   }
   doc.addEventListener("input", function(e){ var el=e.target.closest("[data-id]"); if(el && el.type!=="checkbox") memoriser(el); });
   doc.addEventListener("change", function(e){ if(e.target.matches("input[type=checkbox][data-id]")) memoriser(e.target); });
+  doc.addEventListener("click", function(e){
+    if(e.target.id!=="autreSource") return; e.preventDefault();
+    try{ sessionStorage.setItem("omni-labo-source", data.source==="plan"?"fiche":"plan"); }catch(_){}
+    if(/[?&]source=plan\b/.test(location.search)){ location.href="labo-omnipratique.html"; return; }
+    data=charger(); render();
+  });
 
   var bar=F.barre({
     titre:function(){ return F.titreFichier(data,"Fiche_laboratoire"); },
     dossier:function(){ return data&&data.dossier; },
-    recharger:function(){ data=F.load(); render(); bar.dire(data?"✓ Données rechargées depuis la fiche d’intervention.":"Aucune donnée dans la fiche d’intervention."); }
+    recharger:function(){ data=charger(); render(); bar.dire(data?"✓ Données rechargées.":"Aucune donnée dans le plan ni dans la fiche d’intervention."); }
   });
   render();
 })();
