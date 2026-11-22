@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<title>Fiche de laboratoire – v1.1</title>
+<title>Fiche de laboratoire – v1.2</title>
 <meta name="theme-color" content="#173a63">
 <link rel="icon" href="icon-192.png">
 <script src="fiches-commun.js"></script>
@@ -41,6 +41,9 @@
   th{background:var(--bleu);color:#fff;font-size:11.5px;text-transform:uppercase;letter-spacing:.04em;text-align:left;padding:6px 8px}
   td{border:1px solid #c9d3e2;padding:6px 8px;vertical-align:top}
   td .ed{display:block;border-bottom:none;min-height:20px}
+  tr.exclu td{background:#f3f4f6;color:#8a93a3}
+  tr.exclu .ed{text-decoration:line-through}
+  tr.exclu td:last-child .ed{text-decoration:none;font-style:italic}
   .cases{display:flex;flex-wrap:wrap;gap:6px 20px;padding:2px 0}
   .cases label{display:inline-flex;gap:6px;align-items:center;white-space:nowrap}
   input[type=checkbox]{margin:0;width:15px;height:15px}
@@ -95,25 +98,51 @@
   var HORS_LABO=/(^|[\s,;+\/])(d[ée]t|surf|compo|endo|rte|ext|exp|imp|impna|combl|bprf|porcin|bovin|biobank|d[ée]coupe|s[ée]parer racines|pilier)(?=$|[\s,;+\/])/gi;
   var CODES={ "ccm":["Couronne","Céramo-métallique"], "ccc":["Couronne","Céramo-céramique"], "ic":["Inlay-core",""], "inlay":["Inlay-onlay",""],
     "bridge":["Bridge",""], "pap":["Prothèse amovible partielle",""], "pac":["Prothèse amovible complète",""], "gouttière":["Gouttière",""], "facette":["Facette",""] };
-  function depuisPlan(){
-    var o=null; try{ o=JSON.parse(localStorage.getItem("omni_plan_current")||"null"); }catch(e){}
-    if(!o || !o.p) return null;
+  function nettoie(c){
+    var r=String(c||""), avant;
+    do{ avant=r; r=r.replace(HORS_LABO,"$1"); }while(r!==avant);
+    return r.replace(/^[\s,;+\/\-]+|[\s,;+\/\-]+$/g,"").replace(/\s+/g," ");
+  }
+  /* « 36 imp 46 CCM » → {36:"imp", 46:"CCM"} ; « 14 15 16 bridge » → les trois dents ; un code sans dent (PAC) est gardé à part. */
+  function parSeance(txt){
+    var out={}, dents=[], codes=[], dernierDent=false;
+    function vider(){ if(!codes.length) return; (dents.length?dents:[""]).forEach(function(d){ out[d]=(out[d]?out[d]+" ":"")+codes.join(" "); }); }
+    String(txt||"").split(/[\s,;+]+/).filter(function(t){ return t && t!=="-" && t!=="–"; }).forEach(function(t){
+      if(/^[1-4][1-8]$/.test(t)){ if(!dernierDent){ vider(); dents=[]; codes=[]; } dents.push(t); dernierDent=true; }
+      else { codes.push(t); dernierDent=false; }
+    });
+    vider(); return out;
+  }
+  function lirePlan(){ var o=null; try{ o=JSON.parse(localStorage.getItem("omni_plan_current")||"null"); }catch(e){} return (o && o.p) ? o : null; }
+  function avecImplant(o, dent){ return /(^|[\s,;+\/])(imp|impna)(?=$|[\s,;+\/])/i.test(String((o.teeth||{})[dent]||"")); }
+  /* Travaux de laboratoire d'une séance du plan (n = 0, 1, 2…) ou de tout l'odontogramme (n = "tout"). */
+  function travauxPlan(o, n){
+    var carte = (n==="tout") ? (o.teeth||{}) : parSeance(((o.sessions||[])[n]||{}).actes);
     var groupes={}, ordre=[];
-    Object.keys(o.teeth||{}).sort().forEach(function(dent){
-      var reste=String(o.teeth[dent]||""), avant;
-      do{ avant=reste; reste=reste.replace(HORS_LABO,"$1"); }while(reste!==avant);
-      reste=reste.replace(/^[\s,;+\/]+|[\s,;+\/]+$/g,"").replace(/\s+/g," ");
-      if(!reste) return;
-      if(!groupes[reste]){ groupes[reste]=[]; ordre.push(reste); }
-      groupes[reste].push(dent);
+    Object.keys(carte).sort().forEach(function(dent){
+      var reste=nettoie(carte[dent]); if(!reste) return;
+      var imp=dent && avecImplant(o,dent), cle=reste+(imp?"|implant":"");
+      if(!groupes[cle]){ groupes[cle]={code:reste, implant:imp, dents:[]}; ordre.push(cle); }
+      if(dent) groupes[cle].dents.push(dent);
     });
-    var actes=ordre.map(function(code){
-      var c=CODES[code.toLowerCase()];
-      return {disc:"Prothèse", acte:c?c[0]:code, dent:groupes[code].join(", "), note:c?c[1]:""};
+    return ordre.map(function(k){
+      var g=groupes[k], c=CODES[g.code.toLowerCase()];
+      return {disc:"Prothèse", acte:(c?c[0]:g.code)+(g.implant?" sur implant":""), dent:g.dents.join(", "), note:c?c[1]:"", implant:g.implant};
     });
+  }
+  function depuisPlan(){
+    var o=lirePlan(); if(!o) return null;
+    var seances=[]; (o.sessions||[]).forEach(function(se,i){ if(String(se.actes||"").trim()) seances.push(i); });
+    var choix=null; try{ choix=sessionStorage.getItem("omni-labo-seance"); }catch(e){}
+    if(choix!=="tout"){ choix=(choix!==null && seances.indexOf(+choix)>=0) ? +choix : null; }
+    if(choix===null){
+      // par défaut : la première séance qui contient un travail de laboratoire ; sinon tout le plan
+      choix="tout";
+      for(var k=0;k<seances.length;k++){ if(travauxPlan(o,seances[k]).length){ choix=seances[k]; break; } }
+    }
     var d=F.parseDateFr(o.p.date);
-    return { source:"plan", nom:(o.p.nom||"").trim(), prenom:"", dossier:(o.p.dossier||"").trim(), date:d?F.fmtCourt(d):F.fmtCourt(new Date()),
-      correspondant:o.p.correspondant||"", actes:actes, materiel:[], implants:[] };
+    return { source:"plan", seance:choix, seances:seances, nom:(o.p.nom||"").trim(), prenom:"", dossier:(o.p.dossier||"").trim(),
+      date:d?F.fmtCourt(d):F.fmtCourt(new Date()), correspondant:o.p.correspondant||"", actes:travauxPlan(o,choix), materiel:[], implants:[] };
   }
   function aProthese(x){ return !!(x && (x.actes||[]).some(function(a){ return /proth/i.test(a.disc||""); })); }
   function charger(){
@@ -171,15 +200,24 @@
       +'</div>';
 
     var autre=(data.source==="plan") ? F.load() : depuisPlan();
-    h+='<div class="hint noprint" style="margin:8px 0 0">Préparée depuis <b>'+(data.source==="plan"?"le plan de traitement":"la fiche d’intervention")+'</b>.'
-      +(autre?' <a href="#" id="autreSource" style="color:#173a63">Utiliser plutôt '+(data.source==="plan"?"la fiche d’intervention":"le plan de traitement")+'</a>':'')+'</div>';
-    h+='<h3>Travail demandé</h3><table><tr><th style="width:13%">Dent(s)</th><th style="width:31%">Travail</th><th style="width:22%">Matériau</th><th style="width:12%">Teinte</th><th>Précision</th></tr>';
-    var lignes=travaux.length?travaux:[{acte:"",dent:"",note:""}];
+    var planMode=data.source==="plan", pre=planMode?("s"+data.seance+"_"):"";
+    h+='<div class="hint noprint" style="margin:8px 0 0">Préparée depuis <b>'+(planMode?"le plan de traitement":"la fiche d’intervention")+'</b>.'
+      +(autre?' <a href="#" id="autreSource" style="color:#173a63">Utiliser plutôt '+(planMode?"la fiche d’intervention":"le plan de traitement")+'</a>':'')+'</div>';
+    if(planMode){
+      h+='<div class="hint noprint" style="margin:6px 0 0"><label>Travaux de : <select id="choixSeance" style="font-size:14px;padding:5px 8px;border-radius:7px;border:1px solid #9fb0c6">'
+        +data.seances.map(function(n){ return '<option value="'+n+'"'+(data.seance===n?" selected":"")+'>Séance n° '+(n+1)+'</option>'; }).join("")
+        +'<option value="tout"'+(data.seance==="tout"?" selected":"")+'>Tout le plan (odontogramme)</option></select></label>'
+        +' — décochez une ligne pour ne pas l’envoyer maintenant. Une couronne sur implant est décochée d’office quand tout le plan est affiché.</div>';
+    }
+    h+='<h3>Travail demandé</h3><table><tr>'+(planMode?'<th class="noprint" style="width:5%"></th>':'')+'<th style="width:13%">Dent(s)</th><th style="width:31%">Travail</th><th style="width:22%">Matériau</th><th style="width:12%">Teinte</th><th>Précision</th></tr>';
+    var lignes=travaux.length?travaux:[{acte:"",dent:"",note:""}], st=saisies();
     lignes.forEach(function(a,i){
-      h+='<tr><td>'+ed("t"+i+"_dent", a.dent||"")+'</td><td>'+ed("t"+i+"_travail", (a.acte||"").replace(/\s*:\s*(pr[ée]paration et empreinte|pose)\s*$/i,""))+'</td>'
-        +'<td>'+ed("t"+i+"_mat", materiauDe(a.note)||(data.source==="plan"?a.note:""))+'</td><td>'+ed("t"+i+"_teinte", teinteDe(a.note))+'</td><td>'+ed("t"+i+"_note", data.source==="plan"?"":(a.note||""))+'</td></tr>';
+      var id=pre+"t"+i, on=!planMode || ((id+"_on" in st) ? !!st[id+"_on"] : !(a.implant && data.seance==="tout"));
+      h+='<tr'+(on?'':' class="exclu noprint"')+'>'+(planMode?'<td class="noprint" style="text-align:center"><input type="checkbox" data-id="'+id+'_on" data-ligne="1"'+(on?" checked":"")+' title="Envoyer ce travail au laboratoire maintenant"></td>':'')
+        +'<td>'+ed(id+"_dent", a.dent||"")+'</td><td>'+ed(id+"_travail", (a.acte||"").replace(/\s*:\s*(pr[ée]paration et empreinte|pose)\s*$/i,""))+'</td>'
+        +'<td>'+ed(id+"_mat", materiauDe(a.note)||(planMode?a.note:""))+'</td><td>'+ed(id+"_teinte", teinteDe(a.note))+'</td><td>'+ed(id+"_note", planMode?(a.implant&&!on?"différée : après ostéo-intégration":""):(a.note||""))+'</td></tr>';
     });
-    h+='<tr><td>'+ed("tx_dent","")+'</td><td>'+ed("tx_travail","")+'</td><td>'+ed("tx_mat","")+'</td><td>'+ed("tx_teinte","")+'</td><td>'+ed("tx_note","")+'</td></tr>';
+    h+='<tr>'+(planMode?'<td class="noprint"></td>':'')+'<td>'+ed("tx_dent","")+'</td><td>'+ed("tx_travail","")+'</td><td>'+ed("tx_mat","")+'</td><td>'+ed("tx_teinte","")+'</td><td>'+ed("tx_note","")+'</td></tr>';
     h+='</table>';
     if(!travaux.length) h+='<div class="hint noprint">Aucun travail de prothèse trouvé : remplissez le tableau à la main, ou saisissez l’acte dans le plan de traitement ou la fiche d’intervention.</div>';
 
@@ -213,7 +251,10 @@
     try{ localStorage.setItem(STORE, JSON.stringify(o)); if(id==="labo") localStorage.setItem(LABO, o[k][id]); }catch(e){}
   }
   doc.addEventListener("input", function(e){ var el=e.target.closest("[data-id]"); if(el && el.type!=="checkbox") memoriser(el); });
-  doc.addEventListener("change", function(e){ if(e.target.matches("input[type=checkbox][data-id]")) memoriser(e.target); });
+  doc.addEventListener("change", function(e){
+    if(e.target.id==="choixSeance"){ try{ sessionStorage.setItem("omni-labo-seance", e.target.value); }catch(_){} data=charger(); render(); return; }
+    if(e.target.matches("input[type=checkbox][data-id]")){ memoriser(e.target); if(e.target.hasAttribute("data-ligne")) render(); }
+  });
   doc.addEventListener("click", function(e){
     if(e.target.id!=="autreSource") return; e.preventDefault();
     try{ sessionStorage.setItem("omni-labo-source", data.source==="plan"?"fiche":"plan"); }catch(_){}
