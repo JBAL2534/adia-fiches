@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<title>Traçabilité omnipratique – v1.0</title>
+<title>Traçabilité omnipratique – v1.1</title>
 <meta name="theme-color" content="#173a63">
 <link rel="icon" href="icon-192.png">
 <script src="fiches-commun.js"></script>
@@ -126,7 +126,8 @@
     return p.join(" + ");
   }
   function produits(){
-    var out=[]; (data.materiel||[]).forEach(function(g){ (g.items||[]).forEach(function(it){ if(!SANS_LOT.test(it.id||"")) out.push({id:it.id, label:it.label, groupe:g.titre}); }); });
+    var out=[]; (data.materiel||[]).forEach(function(g){ if(g.type==="materiel") return;   /* instruments et appareils : pas de lot */
+      (g.items||[]).forEach(function(it){ if(!SANS_LOT.test(it.id||"")) out.push({id:it.id, label:it.label, groupe:g.titre, type:g.type}); }); });
     return out;
   }
 
@@ -152,7 +153,7 @@
       +zone("gant2","Assistante : modèle, taille, réf, lot, péremption")+'</div>';
 
     var pr=produits(), cases=[];
-    if(!pr.some(function(p){ return /^an_/.test(p.id||"") || /anesth/i.test(p.groupe||""); })) cases.push(cas("Anesthésique","p_anesthesique"));
+    if(!pr.some(function(p){ return p.type==="anesthesie" || /^an_/.test(p.id||"") || /anesth/i.test(p.groupe||""); })) cases.push(cas("Anesthésique","p_anesthesique"));
     pr.forEach(function(p){ cases.push(cas(p.label, "p_"+F.slug(p.id||p.label))); });
     h+='<h3>Produits utilisés — référence, lot, péremption</h3>'+grille(cases);
 

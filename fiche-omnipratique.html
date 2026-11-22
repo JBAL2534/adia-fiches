@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<title>Fiche omnipratique – v1.2</title>
+<title>Fiche omnipratique – v1.3</title>
 <link rel="manifest" href="omni.webmanifest">
 <script src="fiches-nav.js" defer></script>
 <meta name="theme-color" content="#173a63">
@@ -209,7 +209,7 @@
 <div class="page">
   <div class="hdr">
     <div id="entete"></div>
-    <div class="hdr-title">Fiche d'intervention<span id="appver">Omnipratique · v1.2</span></div>
+    <div class="hdr-title">Fiche d'intervention<span id="appver">Omnipratique · v1.3</span></div>
   </div>
 
   <!-- Barre de dictée -->
@@ -312,13 +312,23 @@
 
   <!-- 3 -->
   <section>
-    <h2>3/ Matériel <span style="font-weight:normal;text-transform:none;letter-spacing:0;color:#6b7a90;font-size:12px">— suit les actes prévus</span> <button id="matEditBtn" type="button" class="addbtn" style="float:right;font-size:13px;padding:4px 10px">✏️ Modifier la liste</button></h2>
+    <h2>3/ Anesthésie</h2>
+    <div id="anesGroups"></div>
+  </section>
+
+  <section>
+    <h2>4/ Matériel <span style="font-weight:normal;text-transform:none;letter-spacing:0;color:#6b7a90;font-size:12px">— instruments et appareils, selon les actes prévus</span> <button id="matEditBtn" type="button" class="addbtn" style="float:right;font-size:13px;padding:4px 10px">✏️ Modifier les listes</button></h2>
     <div id="matGroups"></div>
+  </section>
+
+  <section>
+    <h2>5/ Produits et consommables <span style="font-weight:normal;text-transform:none;letter-spacing:0;color:#6b7a90;font-size:12px">— selon les actes prévus</span></h2>
+    <div id="prodGroups"></div>
   </section>
 
   <!-- 4 -->
   <section>
-    <h2>4/ PRF</h2>
+    <h2>6/ PRF</h2>
     <div id="prfList"></div>
     <div class="row addrow">
       <button id="prfAdd" type="button" class="addbtn">＋ Élément PRF…</button>
@@ -659,31 +669,80 @@
     {id:"avul_oui", label:"Avulsion : oui", keys:["avulsion oui","implantation immediate oui"]},
     {id:"avul_non", label:"Avulsion : non", keys:["avulsion non","implantation immediate non","pas d avulsion"]}
   ];
-  var MSTORE = "omni-materiel-v1";
+  var MSTORE = "omni-materiel-v2";
   var MAT_DEFAULT = [
-    {title:"Anesthésie", items:[
+    /* type : "anesthesie", "materiel" (instruments et appareils) ou "produit" (consommables, avec un lot à tracer).
+       disc : le groupe n'apparaît que si un acte de cette discipline est prévu. */
+    {title:"Anesthésie", type:"anesthesie", items:[
       {id:"an_art100",label:"Articaïne 1/100 000"},
       {id:"an_art200",label:"Articaïne 1/200 000"},
       {id:"an_sansvaso",label:"Sans vasoconstricteur"},
+      {id:"an_contact",label:"Anesthésie de contact"},
       {id:"an_tronc",label:"Tronculaire"},
-      {id:"an_intralig",label:"Intraligamentaire"},
-      {id:"an_contact",label:"Anesthésie de contact"}
+      {id:"an_intralig",label:"Intraligamentaire"}
     ]},
-    {title:"Chirurgie", disc:"Chirurgie", items:[
+
+    {title:"Rotatifs et appareils", type:"materiel", items:[
+      {id:"mt_turbine",label:"Turbine"},
+      {id:"mt_carouge",label:"Contre-angle rouge"},
+      {id:"mt_cableu",label:"Contre-angle bleu"},
+      {id:"mt_pm",label:"Pièce à main"},
+      {id:"mt_pmchir",label:"Pièce à main chirurgicale"},
+      {id:"mt_fraises",label:"Fraises"},
+      {id:"mt_piezo",label:"Piézochirurgie"},
+      {id:"pa_us",label:"Ultrasons"},
+      {id:"mt_lampe",label:"Lampe à polymériser"}
+    ]},
+    {title:"Chirurgie", type:"materiel", disc:"Chirurgie", items:[
       {id:"ch_daviers",label:"Daviers"},
       {id:"ch_elev",label:"Syndesmotomes / élévateurs"},
       {id:"ch_lame",label:"Lame 15"},
       {id:"ch_decol",label:"Décolleur"},
-      {id:"ch_fraise",label:"Fraise chirurgicale"},
       {id:"ch_curette",label:"Curette alvéolaire"},
-      {id:"ch_hemo",label:"Éponge hémostatique"},
-      {id:"ch_suture",label:"Fil de suture"}
+      {id:"ch_porteaig",label:"Porte-aiguille"}
     ]},
-    {title:"Endodontie", disc:"Endodontie", items:[
+    {title:"Implantologie", type:"materiel", disc:"Implantologie", items:[
+      {id:"im_moteur",label:"Moteur d'implantologie"},
+      {id:"im_ca",label:"Contre-angle d'implantologie"},
+      {id:"im_trousse",label:"Trousse implantaire"},
+      {id:"im_guide",label:"Guide chirurgical"}
+    ]},
+    {title:"Endodontie", type:"materiel", disc:"Endodontie", items:[
       {id:"en_digue",label:"Digue"},
       {id:"en_apex",label:"Localisateur d'apex"},
       {id:"en_limes",label:"Limes manuelles"},
       {id:"en_niti",label:"Instruments rotatifs NiTi"},
+      {id:"en_moteur",label:"Moteur d'endodontie"}
+    ]},
+    {title:"Restauration", type:"materiel", disc:"Soins conservateurs", items:[
+      {id:"re_digue",label:"Digue"},
+      {id:"re_matrice",label:"Matrice + coin"},
+      {id:"re_polissage",label:"Kit de polissage"}
+    ]},
+    {title:"Prothèse", type:"materiel", disc:"Prothèse", items:[
+      {id:"pr_pe",label:"Porte-empreinte"},
+      {id:"pr_optique",label:"Caméra d'empreinte optique"},
+      {id:"pr_teintier",label:"Teintier"},
+      {id:"pr_arc",label:"Arc facial"}
+    ]},
+    {title:"Parodontie", type:"materiel", disc:"Parodontie", items:[
+      {id:"pa_sonde",label:"Sonde parodontale"},
+      {id:"pa_curettes",label:"Curettes de Gracey"},
+      {id:"pa_aero",label:"Aéropolisseur"}
+    ]},
+
+    {title:"Chirurgie", type:"produit", disc:"Chirurgie", items:[
+      {id:"ch_hemo",label:"Éponge hémostatique"},
+      {id:"ch_suture",label:"Fil de suture"},
+      {id:"ch_compresses",label:"Compresses stériles"}
+    ]},
+    {title:"Implantologie", type:"produit", disc:"Implantologie", items:[
+      {id:"im_comblement",label:"Comblement osseux"},
+      {id:"im_membrane",label:"Membrane"},
+      {id:"im_cicat",label:"Pilier de cicatrisation"},
+      {id:"im_viscouv",label:"Vis de couverture"}
+    ]},
+    {title:"Endodontie", type:"produit", disc:"Endodontie", items:[
       {id:"en_hypo",label:"Hypochlorite"},
       {id:"en_edta",label:"EDTA"},
       {id:"en_gutta",label:"Cônes de gutta"},
@@ -691,45 +750,28 @@
       {id:"en_caoh",label:"Hydroxyde de calcium"},
       {id:"en_prov",label:"Obturation provisoire"}
     ]},
-    {title:"Restauration", disc:"Soins conservateurs", items:[
-      {id:"re_digue",label:"Digue"},
-      {id:"re_matrice",label:"Matrice + coin"},
+    {title:"Restauration", type:"produit", disc:"Soins conservateurs", items:[
       {id:"re_mord",label:"Mordançage"},
       {id:"re_adhesif",label:"Adhésif"},
       {id:"re_compo",label:"Composite"},
       {id:"re_fluide",label:"Composite fluide"},
-      {id:"re_cvi",label:"CVI"},
-      {id:"re_polissage",label:"Kit de polissage"}
+      {id:"re_cvi",label:"CVI"}
     ]},
-    {title:"Prothèse", disc:"Prothèse", items:[
-      {id:"pr_pe",label:"Porte-empreinte"},
+    {title:"Prothèse", type:"produit", disc:"Prothèse", items:[
       {id:"pr_alginate",label:"Alginate"},
       {id:"pr_silicone",label:"Silicone"},
-      {id:"pr_optique",label:"Empreinte optique"},
       {id:"pr_fil",label:"Fil rétracteur"},
       {id:"pr_occlu",label:"Cire d'occlusion"},
-      {id:"pr_teintier",label:"Teintier"},
       {id:"pr_resine",label:"Résine provisoire"},
       {id:"pr_cimprov",label:"Ciment provisoire"},
       {id:"pr_scell",label:"Ciment de scellement"},
       {id:"pr_colle",label:"Colle"}
     ]},
-    {title:"Parodontie", disc:"Parodontie", items:[
-      {id:"pa_sonde",label:"Sonde parodontale"},
-      {id:"pa_us",label:"Ultrasons"},
-      {id:"pa_curettes",label:"Curettes de Gracey"},
-      {id:"pa_aero",label:"Aéropolisseur"},
+    {title:"Parodontie", type:"produit", disc:"Parodontie", items:[
       {id:"pa_chx",label:"Chlorhexidine"}
-    ]},
-    {title:"Implantologie", disc:"Implantologie", items:[
-      {id:"im_trousse",label:"Trousse implantaire"},
-      {id:"im_moteur",label:"Moteur d'implantologie"},
-      {id:"im_guide",label:"Guide chirurgical"},
-      {id:"im_comblement",label:"Comblement osseux"},
-      {id:"im_membrane",label:"Membrane"},
-      {id:"im_cicat",label:"Pilier de cicatrisation"}
     ]}
   ];
+  function typeDe(g){ return g.type==="anesthesie"||g.type==="produit" ? g.type : "materiel"; }
 
   // ===== Actes prévus (omnipratique) : une ligne par acte =====
   var ASTORE="omni-fiche-actes-v1";
@@ -778,9 +820,10 @@
   function renderMat(){
     majPrf();
     var host=document.getElementById("matGroups"); if(!host) return;
-    var cur={}; host.querySelectorAll("input[type=checkbox]").forEach(function(cb){ cur[cb.id]=cb.checked; });
+    var hosts={anesthesie:document.getElementById("anesGroups")||host, materiel:host, produit:document.getElementById("prodGroups")||host};
+    var cur={}; [hosts.anesthesie,hosts.materiel,hosts.produit].forEach(function(hh){ hh.querySelectorAll("input[type=checkbox]").forEach(function(cb){ cur[cb.id]=cb.checked; }); });
     var saved={}; try{ saved=JSON.parse(localStorage.getItem(STORE)||"{}"); }catch(e){}
-    host.innerHTML="";
+    hosts.anesthesie.innerHTML=""; hosts.produit.innerHTML=""; host.innerHTML="";
     matModel.forEach(function(g,gi){
       if(!matEdit && !groupeVisible(g)) return;
       var box=document.createElement("div"); box.className="sub";
@@ -812,15 +855,21 @@
         dg.addEventListener("click", function(){ if(confirm("Supprimer le groupe « "+(g.title||"")+" » et ses éléments ?")){ matModel.splice(gi,1); saveMat(); renderMat(); rebuildChecks(); } });
         box.appendChild(dg);
       }
-      host.appendChild(box);
+      hosts[typeDe(g)].appendChild(box);
+    });
+    // rubrique vide (aucun acte prévu) : un mot plutôt qu'un blanc
+    [["materiel","Rien de plus pour l'instant : le matériel propre à chaque discipline apparaît quand un acte est saisi."],["produit","Les produits apparaissent quand un acte est saisi."]].forEach(function(x){
+      if(!hosts[x[0]].children.length){ var v=document.createElement("div"); v.style.cssText="color:#888;font-style:italic;font-size:14px;margin:6px 0"; v.textContent=x[1]; hosts[x[0]].appendChild(v); }
     });
     if(matEdit){
       var wrap=document.createElement("div"); wrap.className="row addrow"; wrap.style.marginTop="8px";
-      var ag=document.createElement("button"); ag.type="button"; ag.className="addbtn"; ag.textContent="＋ groupe";
-      ag.addEventListener("click", function(){ var v=prompt("Nom du nouveau groupe :"); if(v!=null){ matModel.push({title:v.trim(),items:[]}); saveMat(); renderMat(); }});
+      var ag=document.createElement("button"); ag.type="button"; ag.className="addbtn"; ag.textContent="＋ groupe de matériel";
+      ag.addEventListener("click", function(){ var v=prompt("Nom du nouveau groupe de matériel :"); if(v!=null){ matModel.push({title:v.trim(),type:"materiel",items:[]}); saveMat(); renderMat(); }});
+      var ap=document.createElement("button"); ap.type="button"; ap.className="addbtn"; ap.textContent="＋ groupe de produits";
+      ap.addEventListener("click", function(){ var v=prompt("Nom du nouveau groupe de produits :"); if(v!=null){ matModel.push({title:v.trim(),type:"produit",items:[]}); saveMat(); renderMat(); }});
       var rs=document.createElement("button"); rs.type="button"; rs.className="addbtn alt"; rs.textContent="↺ Liste d'origine";
       rs.addEventListener("click", function(){ if(confirm("Revenir à la liste d'origine ? Vos ajouts seront perdus.")){ matModel=JSON.parse(JSON.stringify(MAT_DEFAULT)); saveMat(); renderMat(); rebuildChecks(); }});
-      wrap.appendChild(ag); wrap.appendChild(rs); host.appendChild(wrap);
+      wrap.appendChild(ag); wrap.appendChild(ap); wrap.appendChild(rs); host.appendChild(wrap);
     }
   }
   function matWordHtml(){
@@ -832,7 +881,7 @@
     }).join("");
   }
   var _matBtn=document.getElementById("matEditBtn");
-  if(_matBtn) _matBtn.addEventListener("click", function(){ matEdit=!matEdit; _matBtn.textContent=matEdit?"✓ Terminer":"✏️ Modifier la liste"; renderMat(); });
+  if(_matBtn) _matBtn.addEventListener("click", function(){ matEdit=!matEdit; _matBtn.textContent=matEdit?"✓ Terminer":"✏️ Modifier les listes"; renderMat(); });
   renderMat();
   rebuildChecks();
 
@@ -1292,23 +1341,28 @@
     nl(4);
     }
 
-    // ---- 3/ Materiel (groupé, coché seulement, texte foncé) ----
-    section("3 / Materiel");
-    var anyMat=false;
-    matModel.forEach(function(g){
-      var got=g.items.filter(function(it){return chk(it.id);}).map(function(it){return it.label;});
-      if(!got.length) return; anyMat=true;
-      T(ML+10, Y, (g.title||"")+" :", "F2", 10, NAVY);
-      var ml=wrap(got.join(",   "), 11, MR-ML-135), my=Y;
-      ml.forEach(function(l){ T(ML+125, my, l, "F1", 11); my-=13; });
-      nl(Math.max(15, ml.length*13+2));
+    // ---- 3/ Anesthésie, 4/ Matériel, 5/ Produits (coché seulement ; une rubrique vide n'est pas imprimée) ----
+    [["anesthesie","3 / Anesthesie"],["materiel","4 / Materiel"],["produit","5 / Produits et consommables"]].forEach(function(r){
+      var lignes=[];
+      matModel.forEach(function(g){
+        if(typeDe(g)!==r[0]) return;
+        var got=g.items.filter(function(it){return chk(it.id);}).map(function(it){return it.label;});
+        if(got.length) lignes.push([g.title||"", got]);
+      });
+      if(!lignes.length) return;
+      section(r[1]);
+      lignes.forEach(function(x){
+        if(r[0]!=="anesthesie") T(ML+10, Y, x[0]+" :", "F2", 10, NAVY);
+        var dx=r[0]==="anesthesie"?10:125, ml=wrap(x[1].join(",   "), 11, MR-ML-dx-10), my=Y;
+        ml.forEach(function(l){ T(ML+dx, my, l, "F1", 11); my-=13; });
+        nl(Math.max(15, ml.length*13+2));
+      });
     });
-    if(!anyMat){ T(ML+10,Y,"-","F4",11,GREY); nl(15); }
 
     // ---- 4/ PRF : seulement si coché ----
     var prf=[];
     prfModel.forEach(function(it){ if(chk(it.id)) prf.push((val(it.id+"_n")||"?")+" "+it.label); });
-    if(prf.length){ section("4 / PRF"); T(ML+10,Y, prf.join("            "), "F2", 11); nl(15); }
+    if(prf.length){ section("6 / PRF"); T(ML+10,Y, prf.join("            "), "F2", 11); nl(15); }
 
     // ---- Autres éléments ----
     var cust=customs.filter(function(c){return c.checked!==false;});
@@ -1493,7 +1547,7 @@
       alertes:alertModel.filter(function(it){ var e=document.getElementById(it.id); return e&&e.checked; }).map(function(it){ return it.label; }),
       actes:actes.map(function(a){ return {disc:a.disc||"", acte:a.acte||"", dent:a.dent||"", note:a.note||""}; }),
       implants:implants.map(function(i){ return {sys:i.sys||"", dent:i.dent||"", spec:i.spec||"", plat:i.plat||"auto", mua:i.mua||""}; }),
-      materiel:matModel.map(function(g){ return {titre:g.title||"", items:g.items.filter(function(it){ var e=document.getElementById(it.id); return e&&e.checked; }).map(function(it){ return {id:it.id, label:it.label}; })}; }).filter(function(g){ return g.items.length; }),
+      materiel:matModel.map(function(g){ return {titre:g.title||"", type:typeDe(g), items:g.items.filter(function(it){ var e=document.getElementById(it.id); return e&&e.checked; }).map(function(it){ return {id:it.id, label:it.label}; })}; }).filter(function(g){ return g.items.length; }),
       prf:prfModel.filter(function(it){ var e=document.getElementById(it.id); return e&&e.checked; }).map(function(it){ return {label:it.label, n:v(it.id+"_n")}; }) };
   }
   [["labo","labo-omnipratique.html"],
@@ -1929,14 +1983,18 @@
       +"<td bgcolor='"+NAVY+"' style='color:#fff;padding:5px 8px;font-size:8.5pt;font-weight:bold'>SYSTÈME</td>"
       +"<td bgcolor='"+NAVY+"' style='color:#fff;padding:5px 8px;font-size:8.5pt;font-weight:bold'>DENT</td>"
       +"<td bgcolor='"+NAVY+"' style='color:#fff;padding:5px 8px;font-size:8.5pt;font-weight:bold'>Ø × L / réf</td></tr>"+impBody+"</table>";
-    var matGroups=matModel.map(function(g){
-      var got=g.items.filter(function(it){return c(it.id);}).map(function(it){return esc(it.label);});
-      return got.length ? "<div style='margin:3px 0'><b style='color:"+NAVY+"'>"+esc(g.title||"")+" :</b> "+got.join(", ")+"</div>" : "";
-    }).filter(Boolean).join("");
-    if(!matGroups) matGroups="<div style='color:#999'>—</div>";
-    var materielSec="<div style='"+H3+"'>3 / Matériel</div>"+matGroups;
+    function rubrique(type, titre){
+      var g2=matModel.map(function(g){
+        if(typeDe(g)!==type) return "";
+        var got=g.items.filter(function(it){return c(it.id);}).map(function(it){return esc(it.label);});
+        if(!got.length) return "";
+        return "<div style='margin:3px 0'>"+(type==="anesthesie"?"":"<b style='color:"+NAVY+"'>"+esc(g.title||"")+" :</b> ")+got.join(", ")+"</div>";
+      }).filter(Boolean).join("");
+      return g2 ? "<div style='"+H3+"'>"+titre+"</div>"+g2 : "";
+    }
+    var materielSec=rubrique("anesthesie","3 / Anesthésie")+rubrique("materiel","4 / Matériel")+rubrique("produit","5 / Produits et consommables");
     var prfArr=prfModel.filter(function(it){return c(it.id);}).map(function(it){ return "<b>"+(v(it.id+"_n")||"?")+"</b> "+esc(it.label); });
-    var prfSec="<div style='"+H3+"'>4 / PRF</div><p style='margin:2px 0'>"+(prfArr.length?prfArr.join(" &nbsp;&nbsp; "):"<span style='color:#999'>—</span>")+"</p>";
+    var prfSec="<div style='"+H3+"'>6 / PRF</div><p style='margin:2px 0'>"+(prfArr.length?prfArr.join(" &nbsp;&nbsp; "):"<span style='color:#999'>—</span>")+"</p>";
     var cust=customs.filter(function(x){return x.checked!==false;}).map(function(x){return "<li>"+esc(x.label)+"</li>";}).join("");
     var autres=cust ? "<div style='"+H3+"'>Autres éléments</div><ul style='margin:2px 0'>"+cust+"</ul>" : "";
     return "<html xmlns:w='urn:schemas-microsoft-com:office:word'><head><meta charset='utf-8'><title>"+esc(buildTitle())+"</title></head>"
@@ -2069,7 +2127,7 @@ window.adiaRetourCabinet=function(){ try{ localStorage.removeItem("adia-mode-cab
     return fixed.concat(mats).join(", ") + (vocab ? ", "+vocab : "");
   }
   function matLabels(){
-    return [].slice.call(document.querySelectorAll("#matGroups label.chk")).map(function(l){
+    return [].slice.call(document.querySelectorAll("#anesGroups label.chk, #matGroups label.chk, #prodGroups label.chk")).map(function(l){
       var cb=l.querySelector("input[type=checkbox]"); return {label:l.textContent.replace("✕","").trim(), cb:cb};
     }).filter(function(x){return x.cb;});
   }
