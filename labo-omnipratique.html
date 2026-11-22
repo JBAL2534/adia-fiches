@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<title>Fiche de laboratoire – v1.3</title>
+<title>Fiche de laboratoire – v1.4</title>
 <meta name="theme-color" content="#173a63">
 <link rel="icon" href="icon-192.png">
 <script src="fiches-commun.js"></script>
@@ -207,6 +207,12 @@
     return "";
   }
 
+  /* ---- anonymisation : ce que le laboratoire voit du patient (choix retenu sur le poste) ---- */
+  var ANON="omni-labo-anonymat-v1";
+  function anonymat(){ var v="nom"; try{ v=localStorage.getItem(ANON)||"nom"; }catch(e){} return (v==="initiales"||v==="reference") ? v : "nom"; }
+  function nomComplet(){ return data.source==="plan" ? (data.nom||"") : ((data.nom||"").toUpperCase()+" "+(data.prenom||"")).trim(); }
+  function initiales(){ return ((data.nom||"")+" "+(data.prenom||"")).trim().split(/[\s\-]+/).filter(Boolean).map(function(m){ return m.charAt(0).toUpperCase()+"."; }).join(" "); }
+
   function render(){
     if(!data || (!data.nom && !(data.actes||[]).length)){
       doc.innerHTML='<div class="empty">Aucune intervention à reprendre.<br>Saisissez les actes dans le <a href="plan-omnipratique.html">plan de traitement</a> ou la <a href="fiche-omnipratique.html">fiche d’intervention</a>, puis revenez ici.</div>';
@@ -220,14 +226,17 @@
     h+='<div class="deux">'
       +'<div class="l"><span class="k">Laboratoire :</span>'+ed("labo", laboNom, "nom du laboratoire")+'</div>'
       +'<div class="l"><span class="k">Envoyé le :</span>'+ed("envoi", F.fmtCourt(auj))+'</div>'
-      +'<div class="l"><span class="k">Patient :</span>'+ed("patient", data.source==="plan" ? (data.nom||"") : ((data.nom||"").toUpperCase()+" "+(data.prenom||"")).trim())+'</div>'
-      +'<div class="l"><span class="k">N° de dossier :</span>'+ed("dossier", data.dossier||"")+'</div>'
+      +(anonymat()==="reference" ? '' : '<div class="l"><span class="k">Patient :</span>'+(anonymat()==="initiales" ? ed("patient_ini", initiales()) : ed("patient", nomComplet()))+'</div>')
+      +'<div class="l"><span class="k">'+(anonymat()==="nom"?"N° de dossier":"Référence patient")+' :</span>'+ed("dossier", data.dossier||"")+'</div>'
       +'<div class="l"><span class="k">Date de l’acte :</span>'+ed("dateacte", d?F.fmtCourt(d):(data.date||""))+'</div>'
       +'<div class="l"><span class="k">Praticien :</span>'+ed("praticien", F.entete().dentiste||"")+'</div>'
       +'</div>';
 
     var autre=(data.source==="plan") ? F.load() : depuisPlan();
     var planMode=data.source==="plan", pre=planMode?("s"+data.seance+"_"):"";
+    h+='<div class="hint noprint anon" style="margin:8px 0 0"><label>🔒 Identité transmise au laboratoire : <select id="choixAnon" style="font-size:14px;padding:5px 8px;border-radius:7px;border:1px solid #9fb0c6">'
+      +[["nom","Nom et prénom"],["initiales","Anonymisée : initiales + référence"],["reference","Anonymisée : référence seule"]].map(function(o){ return '<option value="'+o[0]+'"'+(anonymat()===o[0]?" selected":"")+'>'+o[1]+'</option>'; }).join("")
+      +'</select></label>'+(anonymat()!=="nom" ? ' — le nom ne figure ni sur la fiche imprimée, ni dans le Word, ni dans le nom du fichier.'+(data.dossier?'':' <b style="color:#b0243a">Aucun n° de dossier : écrivez une référence à la main.</b>') : '')+'</div>';
     h+='<div class="hint noprint" style="margin:8px 0 0">Préparée depuis <b>'+(planMode?"le plan de traitement":"la fiche d’intervention")+'</b>.'
       +(autre?' <a href="#" id="autreSource" style="color:#173a63">Utiliser plutôt '+(planMode?"la fiche d’intervention":"le plan de traitement")+'</a>':'')+'</div>';
     if(planMode){
@@ -298,6 +307,7 @@
       try{ localStorage.setItem(REGL, JSON.stringify(o)); }catch(_){}
       data=charger(); render(); return;
     }
+    if(e.target.id==="choixAnon"){ try{ localStorage.setItem(ANON, e.target.value); }catch(_){} render(); return; }
     if(e.target.id==="choixSeance"){ try{ sessionStorage.setItem("omni-labo-seance", e.target.value); }catch(_){} data=charger(); render(); return; }
     if(e.target.matches("input[type=checkbox][data-id]")){ memoriser(e.target); if(e.target.hasAttribute("data-ligne")) render(); }
   });
@@ -309,7 +319,7 @@
   });
 
   var bar=F.barre({
-    titre:function(){ return F.titreFichier(data,"Fiche_laboratoire"); },
+    titre:function(){ return F.titreFichier(anonymat()==="nom" ? data : {dossier:data.dossier, date:data.date}, "Fiche_laboratoire"); },
     dossier:function(){ return data&&data.dossier; },
     recharger:function(){ data=charger(); render(); bar.dire(data?"✓ Données rechargées.":"Aucune donnée dans le plan ni dans la fiche d’intervention."); }
   });
