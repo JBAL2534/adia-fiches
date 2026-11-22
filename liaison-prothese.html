@@ -129,7 +129,11 @@
   "use strict";
   var R=window.ADIA_REFS||{};
   R.plateformes=R.plateformes||{}; R.systemes=R.systemes||{}; R.laboratoires=R.laboratoires||{}; R.multiunit=R.multiunit||{transfert:{lignes:[]},analogue:{}}; R.locator=R.locator||{};
-  var HANDOFF="adia-fiches-handoff-v1";
+  /* Version omnipratique (adresse terminée par ?profil=omni) : données et fiche d'intervention à part. */
+  var OMNI=/[?&]profil=omni\b/.test(location.search);
+  var HANDOFF=OMNI?"adia-omni-handoff-v1":"adia-fiches-handoff-v1";
+  var FICHE=OMNI?"fiche-omnipratique.html":"fiche-intervention.html";
+  (function(){ var a=document.querySelector("a.backlink"); if(a) a.href=FICHE; })();
   var ENTETE_KEY="adia-entete-v1";
   var live=document.getElementById("live");
 
@@ -333,7 +337,7 @@
   var model=null;
   function render(){
     var doc=document.getElementById("doc");
-    if(!data){ doc.innerHTML=entete()+'<div class="empty">Aucune intervention reçue.<br>Ouvrez la <a href="fiche-intervention.html">fiche d\'intervention</a> et cliquez sur « Fiche de liaison ».</div>'+pied(); return; }
+    if(!data){ doc.innerHTML=entete()+'<div class="empty">Aucune intervention reçue.<br>Ouvrez la <a href="'+FICHE+'">fiche d\'intervention</a> et cliquez sur « Fiche de liaison ».</div>'+pied(); return; }
     model=buildModel();
     var prothese=optP.value;
     document.getElementById("optHautWrap").style.display=prothese==="locator"?"":"none";

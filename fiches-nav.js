@@ -19,19 +19,20 @@
     ["passeport-implantaire.html","Passeport"],
     ["tracabilite.html","Traçabilité"]
   ];
-  // Omnipratique : le passeport implantaire n'apparaît que si des implants sont saisis.
+  // Omnipratique : la liaison implantaire et le passeport n'apparaissent que si des implants sont saisis.
   var avecImplants=false;
   if(OMNI){
     try{
       var h=JSON.parse(localStorage.getItem("adia-omni-handoff-v1")||"null");
-      avecImplants=!!(h && h.implants && h.implants.length) || /passeport/i.test(location.pathname);
+      avecImplants=!!(h && h.implants && h.implants.length) || /passeport|liaison/i.test(location.pathname);
     }catch(e){}
+    DOCS.push(["liaison-prothese.html?profil=omni","Liaison"]);
     DOCS.push(["passeport-implantaire.html?profil=omni","Passeport"]);
   }
   // La fiche prévient la barre dès qu'un implant est ajouté ou retiré.
   window.adiaNavPasseport=function(oui){
     avecImplants=!!oui;
-    var a=document.getElementById("adiaNavPasseport"); if(a) a.style.display=avecImplants?"":"none";
+    [].forEach.call(document.querySelectorAll("#adiaNav a[data-implants]"), function(a){ a.style.display=avecImplants?"":"none"; });
   };
 
   function poser(){
@@ -54,7 +55,7 @@
     nav.id="adiaNav"; nav.className="noprint"; nav.setAttribute("aria-label","Documents de l'intervention");
     DOCS.forEach(function(d){
       var a=document.createElement("a"); a.href=d[0]; a.textContent=d[1];
-      if(OMNI && d[1]==="Passeport"){ a.id="adiaNavPasseport"; if(!avecImplants) a.style.display="none"; }
+      if(OMNI && (d[1]==="Passeport" || d[1]==="Liaison")){ a.setAttribute("data-implants","1"); if(!avecImplants) a.style.display="none"; }
       if(page(d[0])===ici){ a.setAttribute("aria-current","page"); a.addEventListener("click",function(e){ e.preventDefault(); }); }
       else a.addEventListener("click",function(){
         // la fiche d'intervention dépose ses données à jour avant de céder la place

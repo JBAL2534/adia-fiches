@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<title>Fiche omnipratique – v1.0</title>
+<title>Fiche omnipratique – v1.1</title>
 <link rel="manifest" href="omni.webmanifest">
 <script src="fiches-nav.js" defer></script>
 <meta name="theme-color" content="#173a63">
@@ -209,7 +209,7 @@
 <div class="page">
   <div class="hdr">
     <div id="entete"></div>
-    <div class="hdr-title">Fiche d'intervention<span id="appver">Omnipratique · v1.0</span></div>
+    <div class="hdr-title">Fiche d'intervention<span id="appver">Omnipratique · v1.1</span></div>
   </div>
 
   <!-- Barre de dictée -->
@@ -229,6 +229,7 @@
       <button id="labo" title="Fiche de laboratoire : travail demandé, teinte, matériau, délais">🧪 Fiche de laboratoire</button>
       <button id="consignes" title="Consignes remises au patient après l'acte">📋 Consignes au patient</button>
       <button id="tracabilite" title="Feuille de traçabilité : stérilisation, lots des produits utilisés">🏷️ Traçabilité</button>
+      <button id="liaison" title="Fiche de liaison implantaire pour le correspondant, ou préparation pour l'assistante : transferts, scan bodies, analogues, délais">🦷 Liaison implantaire</button>
       <button id="passeport" title="Passeport chirurgie implantaire (modèle de l'Ordre), si des implants sont posés">🛂 Passeport implantaire</button>
       <button id="reset">↺ Réinitialiser</button>
     </div>
@@ -1487,10 +1488,11 @@
   [["labo","labo-omnipratique.html"],
    ["consignes","consignes-omnipratique.html"],
    ["tracabilite","tracabilite-omnipratique.html"],
+   ["liaison","liaison-prothese.html?profil=omni"],
    ["passeport","passeport-implantaire.html?profil=omni"]].forEach(function(d){
     var b=document.getElementById(d[0]); if(!b) return;
     b.addEventListener("click", function(){
-      if(d[0]==="passeport" && !implants.length){ alert("Le passeport concerne la pose d'implants : aucun implant n'est saisi dans cette fiche."); return; }
+      if((d[0]==="passeport" || d[0]==="liaison") && !implants.length){ alert("Ce document concerne la pose d'implants : aucun implant n'est saisi dans cette fiche."); return; }
       deposerHandoff();
       location.href=d[1];   // même fenêtre : la barre du haut permet ensuite de passer d'un document à l'autre
     });
