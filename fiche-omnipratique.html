@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<title>Fiche omnipratique – v1.3</title>
+<title>Fiche omnipratique – v1.4</title>
 <link rel="manifest" href="omni.webmanifest">
 <script src="fiches-nav.js" defer></script>
 <meta name="theme-color" content="#173a63">
@@ -209,7 +209,7 @@
 <div class="page">
   <div class="hdr">
     <div id="entete"></div>
-    <div class="hdr-title">Fiche d'intervention<span id="appver">Omnipratique · v1.3</span></div>
+    <div class="hdr-title">Fiche d'intervention<span id="appver">Omnipratique · v1.4</span></div>
   </div>
 
   <!-- Barre de dictée -->
@@ -282,14 +282,20 @@
   <section>
     <h2>Intervention</h2>
     <div class="row addrow" style="margin:0 0 8px"><button id="descMic" type="button" class="addbtn">🎤 Dicter ici</button><span style="font-size:13px;color:#777">le texte dicté s'ajoute au cadre, mot pour mot</span></div>
-    <textarea id="description" rows="4" placeholder="Décrire le geste opératoire…"></textarea>
+    <div class="row addrow" style="margin:0 0 8px">
+      <button id="preActes" type="button" class="addbtn" title="Rédige le texte à partir des actes et des implants saisis plus bas">✍ Rédiger depuis les actes</button>
+      <button id="prePlan" type="button" class="addbtn alt" style="display:none" title="Recopie la séance choisie du plan de traitement">⬇ Reprendre du plan</button>
+      <select id="preSeance" style="display:none;flex:0 1 260px;max-width:100%"></select>
+    </div>
+    <textarea id="description" rows="4" placeholder="Décrire le geste opératoire… ou utiliser les boutons ci-dessus"></textarea>
   </section>
 
   <!-- 1 -->
   <section>
-    <h2>1/ Actes prévus <span style="font-weight:normal;text-transform:none;letter-spacing:0;color:#6b7a90;font-size:12px">— une ligne par acte</span></h2>
+    <h2>1/ Actes prévus <span style="font-weight:normal;text-transform:none;letter-spacing:0;color:#6b7a90;font-size:12px">— une ligne par acte</span> <button id="discEditBtn" type="button" class="addbtn" style="float:right;font-size:13px;padding:4px 10px">✏️ Modifier les actes</button></h2>
     <div id="acteList"></div>
     <div class="row addrow"><span id="discBtns" style="display:contents"></span></div>
+    <div id="discEdit"></div>
     <div id="acteDatalists"></div>
   </section>
 
@@ -617,8 +623,10 @@
       var msg=document.getElementById("importAdiaMsg"), p=null;
       try{ p=(JSON.parse(localStorage.getItem("omni_plan_current")||"null")||{}).p; }catch(e){}
       if(!p || !(p.nom||p.dossier)){ if(msg) msg.textContent="Le plan de traitement ne contient pas encore de patient."; return; }
+      try{ sessionStorage.setItem("omni-pre-plan","1"); }catch(e){}
       var nm=adiaApplyPatient(p.nom||"", p.dossier||"");
       if(msg) msg.textContent="Patient repris du plan : "+nm+(p.dossier?" / "+p.dossier:"");
+      setTimeout(function(){ if(window.adiaPreRemplirDepuisPlan) window.adiaPreRemplirDepuisPlan(); }, 1600);
     });
     // Arrivée depuis le bouton « Fiche d'intervention → » du plan : le patient suit, sans rien écraser.
     if(location.hash==="#plan"){
@@ -775,13 +783,21 @@
 
   // ===== Actes prévus (omnipratique) : une ligne par acte =====
   var ASTORE="omni-fiche-actes-v1";
-  var DISCIPLINES=[
-    {nom:"Chirurgie", actes:["Avulsion simple","Avulsion chirurgicale","Dent de sagesse","Alvéolectomie","Freinectomie","Régularisation de crête","Énucléation kystique","Biopsie"]},
+  var DSTORE="omni-disciplines-v1";
+  var DISC_DEFAULT=[
+    {nom:"Chirurgie", actes:["Avulsion simple","Avulsion chirurgicale","Dent de sagesse","Pose d'implant","Mise en fonction de l'implant","Comblement osseux","Soulevé de sinus","Alvéolectomie","Freinectomie","Régularisation de crête","Énucléation kystique","Biopsie"]},
     {nom:"Endodontie", actes:["Pulpotomie","Traitement canalaire","Retraitement canalaire","Médication intracanalaire","Chirurgie apicale"]},
     {nom:"Soins conservateurs", actes:["Composite 1 face","Composite 2 faces","Composite 3 faces","Inlay-onlay : préparation","Inlay-onlay : collage","Coiffage pulpaire","Scellement de sillons"]},
-    {nom:"Prothèse", actes:["Inlay-core","Couronne : préparation et empreinte","Couronne : pose","Couronne provisoire","Bridge : préparation et empreinte","Bridge : pose","Facette","Prothèse amovible partielle","Prothèse amovible complète","Réparation / rebasage"]},
+    {nom:"Prothèse", actes:["Inlay-core","Couronne : préparation et empreinte","Couronne : pose","Couronne provisoire","Couronne sur implant : empreinte","Couronne sur implant : pose","Bridge : préparation et empreinte","Bridge : pose","Facette","Prothèse amovible partielle","Prothèse amovible complète","Réparation / rebasage"]},
     {nom:"Parodontie", actes:["Détartrage","Surfaçage radiculaire","Lambeau d'assainissement","Gingivectomie","Élongation coronaire","Greffe gingivale","Contention","Maintenance parodontale"]}
   ];
+  // Listes librement modifiables (bouton « Modifier les actes ») : retenues sur le poste.
+  var DISCIPLINES=(function(){
+    try{ var a=JSON.parse(localStorage.getItem(DSTORE)); if(Array.isArray(a) && a.length) return a; }catch(e){}
+    return JSON.parse(JSON.stringify(DISC_DEFAULT));
+  })();
+  function saveDisc(){ try{ localStorage.setItem(DSTORE, JSON.stringify(DISCIPLINES)); }catch(e){} }
+  function slugDisc(n){ return String(n||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^A-Za-z0-9]+/g,"_"); }
   var actes=[];
   try{ actes=JSON.parse(localStorage.getItem(ASTORE)||"[]")||[]; }catch(e){ actes=[]; }
   if(!Array.isArray(actes)) actes=[];
@@ -789,7 +805,7 @@
   // Le matériel affiché suit les actes prévus : un groupe lié à une discipline
   // n'apparaît que si un acte de cette discipline (ou un implant) est saisi.
   function discActives(){
-    var o={}; actes.forEach(function(a){ if(a.disc) o[a.disc]=1; });
+    var o={}; actes.forEach(function(a){ if(a.disc) o[a.disc]=1; if(/implant/i.test(a.acte||"")) o["Implantologie"]=1; });
     if(typeof implants!=="undefined" && implants && implants.length) o["Implantologie"]=1;
     return o;
   }
@@ -1002,9 +1018,9 @@
       if(it.disc && noms.indexOf(it.disc)===-1) noms.unshift(it.disc);
       noms.forEach(function(n){ var op=document.createElement("option"); op.value=n; op.textContent=n; if(n===it.disc) op.selected=true; sel.appendChild(op); });
       var acte=document.createElement("input"); acte.type="text"; acte.placeholder="Acte"; acte.value=it.acte||"";
-      acte.setAttribute("list","dl_acte_"+noms.indexOf(it.disc)); acte.autocomplete="off"; acte.style.flex="2 1 170px";
+      acte.setAttribute("list","dl_acte_"+slugDisc(it.disc)); acte.autocomplete="off"; acte.style.flex="2 1 170px";
       sel.addEventListener("change", function(){ actes[idx].disc=sel.value; saveActes(); renderActes(); renderMat(); });
-      acte.addEventListener("input", function(){ actes[idx].acte=acte.value; saveActes(); });
+      acte.addEventListener("input", function(){ var av=/implant/i.test(actes[idx].acte||""); actes[idx].acte=acte.value; saveActes(); if(av!==/implant/i.test(acte.value)) renderMat(); });
       var dent=document.createElement("input"); dent.type="text"; dent.className="sm"; dent.placeholder="Dent(s)"; dent.value=it.dent||"";
       dent.addEventListener("input", function(){ actes[idx].dent=dent.value; saveActes(); });
       var note=document.createElement("input"); note.type="text"; note.placeholder="Précision (faces, teinte, secteur…)"; note.value=it.note||"";
@@ -1020,15 +1036,98 @@
     var box=document.getElementById("acteList");
     if(box.lastChild){ var i=box.lastChild.querySelector("input"); if(i){ flash(i); i.focus(); } }
   }
-  (function(){
-    var dl=document.getElementById("acteDatalists"), bt=document.getElementById("discBtns");
+  var discEdit=false;
+  function renderDisc(){
+    var dl=document.getElementById("acteDatalists"), bt=document.getElementById("discBtns"), ed=document.getElementById("discEdit");
+    if(dl) dl.innerHTML=""; if(bt) bt.innerHTML=""; if(ed) ed.innerHTML="";
     DISCIPLINES.forEach(function(d,i){
-      if(dl){ var l=document.createElement("datalist"); l.id="dl_acte_"+i; d.actes.forEach(function(a){ var o=document.createElement("option"); o.value=a; l.appendChild(o); }); dl.appendChild(l); }
-      if(bt){ var b=document.createElement("button"); b.type="button"; b.className="addbtn"+(i%2?" alt":""); b.textContent="＋ "+d.nom;
+      if(dl){ var l=document.createElement("datalist"); l.id="dl_acte_"+slugDisc(d.nom); d.actes.forEach(function(a){ var o=document.createElement("option"); o.value=a; l.appendChild(o); }); dl.appendChild(l); }
+      if(bt && !discEdit){ var b=document.createElement("button"); b.type="button"; b.className="addbtn"+(i%2?" alt":""); b.textContent="＋ "+d.nom;
         b.addEventListener("click", function(){ addActe(d.nom); }); bt.appendChild(b); }
+      if(ed && discEdit){
+        var box=document.createElement("div"); box.className="sub"; box.style.margin="6px 0 10px";
+        var cat=document.createElement("span"); cat.className="cat"; cat.textContent=d.nom; box.appendChild(cat);
+        d.actes.forEach(function(a,ai){
+          var chip=document.createElement("span"); chip.className="achip";
+          var t=document.createElement("span"); t.textContent=a; t.title="Double-clic pour renommer"; t.style.cursor="text";
+          t.addEventListener("dblclick", function(){ var v=prompt("Renommer l'acte :", a); if(v!=null && v.trim()){ d.actes[ai]=v.trim(); saveDisc(); renderDisc(); } });
+          var x=document.createElement("button"); x.type="button"; x.className="ax"; x.textContent="✕"; x.title="Retirer cet acte de la liste";
+          x.addEventListener("click", function(ev){ ev.preventDefault(); d.actes.splice(ai,1); saveDisc(); renderDisc(); });
+          chip.appendChild(t); chip.appendChild(x); box.appendChild(chip);
+        });
+        var add=document.createElement("button"); add.type="button"; add.className="addbtn"; add.textContent="＋ acte"; add.style.marginLeft="6px";
+        add.addEventListener("click", function(){ var v=prompt("Nouvel acte de "+d.nom+" :"); if(v && v.trim()){ d.actes.push(v.trim()); saveDisc(); renderDisc(); } });
+        box.appendChild(add);
+        var dg=document.createElement("button"); dg.type="button"; dg.className="addbtn alt"; dg.textContent="✕ discipline"; dg.style.marginLeft="6px";
+        dg.addEventListener("click", function(){ if(confirm("Retirer la discipline « "+d.nom+" » et sa liste d'actes ? Les lignes déjà saisies sont conservées.")){ DISCIPLINES.splice(i,1); saveDisc(); renderDisc(); renderActes(); } });
+        box.appendChild(dg);
+        ed.appendChild(box);
+      }
     });
+    if(ed && discEdit){
+      var wrap=document.createElement("div"); wrap.className="row addrow";
+      var ag=document.createElement("button"); ag.type="button"; ag.className="addbtn"; ag.textContent="＋ discipline";
+      ag.addEventListener("click", function(){ var v=prompt("Nom de la nouvelle discipline (ex. Orthodontie, Occlusodontie) :"); if(v && v.trim()){ DISCIPLINES.push({nom:v.trim(), actes:[]}); saveDisc(); renderDisc(); renderActes(); } });
+      var rs=document.createElement("button"); rs.type="button"; rs.className="addbtn alt"; rs.textContent="↺ Listes d'origine";
+      rs.addEventListener("click", function(){ if(confirm("Revenir aux listes d'actes d'origine ? Vos ajouts seront perdus.")){ DISCIPLINES=JSON.parse(JSON.stringify(DISC_DEFAULT)); saveDisc(); renderDisc(); renderActes(); } });
+      var info=document.createElement("span"); info.style.cssText="font-size:13px;color:#667;flex-basis:100%"; info.textContent="Ces listes proposent les actes pendant la saisie ; vous pouvez toujours écrire un acte qui n'y figure pas.";
+      wrap.appendChild(ag); wrap.appendChild(rs); wrap.appendChild(info); ed.appendChild(wrap);
+    }
+  }
+  (function(){ var b=document.getElementById("discEditBtn"); if(b) b.addEventListener("click", function(){ discEdit=!discEdit; b.textContent=discEdit?"✓ Terminer":"✏️ Modifier les actes"; renderDisc(); }); })();
+  renderDisc();
+
+  // ---------- pré-remplir la zone « Intervention » ----------
+  function ecrireDescription(txt){
+    var d=document.getElementById("description"); if(!d || !txt) return;
+    var cur=d.value.trim();
+    if(cur && cur!==txt){ d.value = confirm("La zone Intervention contient déjà un texte.\n\nOK : le remplacer.\nAnnuler : ajouter à la suite.") ? txt : cur+"\n"+txt; }
+    else d.value=txt;
+    d.dispatchEvent(new Event("input",{bubbles:true})); flash(d);
+  }
+  function texteDepuisActes(){
+    var l=actes.filter(function(a){ return a.acte||a.dent||a.note; }).map(function(a){
+      return (a.acte||a.disc||"")+(a.dent?" — dent(s) "+a.dent:"")+(a.note?" ("+a.note+")":"")+".";
+    });
+    implants.forEach(function(i){
+      var spec=(i.spec||"").replace(/\s*\/?\s*r[ée]f.*$/i,"").trim();
+      l.push("Pose d'un implant "+(i.sys||"")+(i.dent?" en "+i.dent:"")+(spec?" ("+spec+")":"")+".");
+    });
+    return l.join("\n");
+  }
+  function seancesPlan(){
+    var o=null; try{ o=JSON.parse(localStorage.getItem("omni_plan_current")||"null"); }catch(e){}
+    var out=[]; ((o && o.sessions)||[]).forEach(function(se,i){ if(String(se.actes||"").trim()) out.push({n:i+1, actes:String(se.actes).trim(), duree:String(se.duree||"").trim()}); });
+    return {plan:o, seances:out};
+  }
+  function texteSeance(se){ return "Séance n° "+se.n+(se.duree?" ("+se.duree+" min)":"")+" : "+se.actes; }
+  function majPreRow(){
+    var sp=seancesPlan(), sel=document.getElementById("preSeance"), bp=document.getElementById("prePlan"); if(!sel || !bp) return;
+    sel.innerHTML=""; sp.seances.forEach(function(se){ var o=document.createElement("option"); o.value=se.n; o.textContent="Séance n° "+se.n+" — "+(se.actes.length>34?se.actes.slice(0,32)+"…":se.actes); sel.appendChild(o); });
+    sel.style.display=bp.style.display=sp.seances.length?"":"none";
+  }
+  (function(){
+    var ba=document.getElementById("preActes"), bp=document.getElementById("prePlan");
+    if(ba) ba.addEventListener("click", function(){ var t=texteDepuisActes(); if(!t){ alert("Saisissez d'abord au moins un acte ou un implant plus bas : le texte sera rédigé à partir d'eux."); return; } ecrireDescription(t); });
+    if(bp) bp.addEventListener("click", function(){ var sp=seancesPlan(), n=+document.getElementById("preSeance").value; var se=sp.seances.filter(function(x){ return x.n===n; })[0]; if(se) ecrireDescription(texteSeance(se)); });
+    majPreRow();
+    window.addEventListener("focus", majPreRow);
   })();
+  /* Après « Reprendre le patient du plan » : si la zone est vide, elle reçoit la première séance du plan. */
+  window.adiaPreRemplirDepuisPlan=function(){
+    var drapeau=null; try{ drapeau=sessionStorage.getItem("omni-pre-plan"); }catch(e){}
+    if(!drapeau) return;
+    try{ sessionStorage.removeItem("omni-pre-plan"); }catch(e){}
+    var d=document.getElementById("description"), sp=seancesPlan();
+    if(!d || d.value.trim() || !sp.seances.length || !sp.plan || !sp.plan.p) return;
+    if(String(sp.plan.p.dossier||"").trim()!==document.getElementById("dossier").value.trim()) return;
+    d.value=texteSeance(sp.seances[0]); d.dispatchEvent(new Event("input",{bubbles:true})); flash(d); majPreRow();
+  };
+  setTimeout(window.adiaPreRemplirDepuisPlan, 1600);
+
   renderActes();
+  renderMat();
+  // ---- Systèmes d'implant  renderActes();
   renderMat();
   // ---- Systèmes d'implant : boutons pilotés par la liste, liste modifiable ----
   var sysEdit=false;
