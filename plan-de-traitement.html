@@ -739,6 +739,16 @@ document.addEventListener('DOMContentLoaded', async function() {
   }, 150);
 })();
 </script>
+<script id="adia-barre-documents">
+// Barre du haut : Plan · Intervention · Liaison · Passeport · Traçabilité. Reposée si la page se redessine.
+setInterval(function(){
+  if(!document.body || document.getElementById("adiaNav") || window.__adiaNavEnCours) return;
+  window.__adiaNavEnCours=true;
+  var sc=document.createElement("script"); sc.src="fiches-nav.js";
+  sc.onload=sc.onerror=function(){ window.__adiaNavEnCours=false; };
+  document.head.appendChild(sc);
+}, 600);
+</script>
 <script id="adia-hors-ligne">
 // Pages gardées en mémoire : après une première ouverture, le plan fonctionne sans internet.
 if("serviceWorker" in navigator && /^https?:$/.test(location.protocol)){

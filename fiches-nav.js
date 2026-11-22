@@ -13,6 +13,7 @@
     ["consignes-omnipratique.html","Consignes"],
     ["tracabilite-omnipratique.html","Traçabilité"]
   ] : [
+    ["plan-de-traitement.html","Plan"],
     ["fiche-intervention.html","Intervention"],
     ["liaison-prothese.html","Liaison"],
     ["passeport-implantaire.html","Passeport"],

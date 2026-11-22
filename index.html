@@ -23,6 +23,8 @@
   a.doc .s{display:block;font-size:13px;color:#5a6b85;margin-top:3px}
   h2.grp{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:#5a6b85;margin:18px 0 8px}
   h2.grp:first-child{margin-top:0}
+  .ordre{font-size:13px;color:#44546c;margin:0 0 12px;line-height:1.4}
+  a.doc .n{display:inline-block;width:26px;height:26px;line-height:26px;margin-right:9px;border-radius:50%;background:#173a63;color:#fff;font-size:13px;text-align:center;vertical-align:1px}
   .note{font-size:12px;color:#6b7a90;margin:6px 0 0}
 </style>
 </head>
@@ -33,35 +35,54 @@
       <p>Choisissez le document à ouvrir</p>
     </div>
     <div class="body">
-      <h2 class="grp">Chirurgie implantaire</h2>
-      <a class="doc" href="fiche-intervention.html">
-        <span class="t">Fiche d'intervention</span>
-        <span class="s">Préparation opératoire : implants, matériel, PRF, alertes médicales, dictée.</span>
-      </a>
-      <a class="doc" href="plan-de-traitement.html">
-        <span class="t">Plan de traitement</span>
-        <span class="s">Odontogramme, actes par dent, séances et rendez-vous.</span>
-      </a>
-      <a class="doc" href="liaison-prothese.html">
-        <span class="t">Fiche de liaison prothèse</span>
-        <span class="s">Générée depuis la fiche d'intervention : transferts, scan bodies, analogues, délais — ou fiche labo.</span>
-      </a>
-      <a class="doc" href="passeport-implantaire.html">
-        <span class="t">Passeport chirurgie implantaire</span>
-        <span class="s">Modèle de l'Ordre, rempli depuis la fiche d'intervention : implants, greffe, mise en charge.</span>
-      </a>
-      <a class="doc" href="tracabilite.html">
-        <span class="t">Traçabilité de l'intervention</span>
-        <span class="s">Trousses, forets, implants, biomatériaux : lots scannés à la douchette ou cadres à étiquettes.</span>
-      </a>
       <h2 class="grp">Omnipratique</h2>
+      <p class="ordre">Dans l'ordre : le plan de traitement, puis la fiche d'intervention, qui remplit les quatre documents suivants. Une barre en haut de chaque page permet de passer de l'un à l'autre.</p>
       <a class="doc" href="plan-omnipratique.html">
-        <span class="t">Plan de traitement omnipratique</span>
+        <span class="t"><span class="n">1</span>Plan de traitement</span>
         <span class="s">Odontogramme, actes par dent (soins, endodontie, prothèse, parodontie, chirurgie, implants), séances.</span>
       </a>
       <a class="doc" href="fiche-omnipratique.html">
-        <span class="t">Fiche d'intervention omnipratique</span>
-        <span class="s">Actes prévus par discipline, matériel qui suit les actes, alertes médicales. Donne la fiche de laboratoire, les consignes au patient, la traçabilité et le passeport implantaire.</span>
+        <span class="t"><span class="n">2</span>Fiche d'intervention</span>
+        <span class="s">Actes prévus par discipline, matériel qui suit les actes, alertes médicales. Reprend le patient du plan.</span>
+      </a>
+      <a class="doc" href="labo-omnipratique.html">
+        <span class="t"><span class="n">3</span>Fiche de laboratoire</span>
+        <span class="s">Prothèse : travail demandé, matériau, teinte, éléments joints, délais.</span>
+      </a>
+      <a class="doc" href="consignes-omnipratique.html">
+        <span class="t"><span class="n">4</span>Consignes au patient</span>
+        <span class="s">Conseils après le soin, selon les actes réalisés.</span>
+      </a>
+      <a class="doc" href="tracabilite-omnipratique.html">
+        <span class="t"><span class="n">5</span>Traçabilité</span>
+        <span class="s">Cassettes stérilisées par discipline, lots des produits utilisés, douchette.</span>
+      </a>
+      <a class="doc" href="passeport-implantaire.html?profil=omni">
+        <span class="t"><span class="n">6</span>Passeport implantaire</span>
+        <span class="s">Modèle de l'Ordre, seulement si des implants sont posés.</span>
+      </a>
+
+      <h2 class="grp">Chirurgie implantaire</h2>
+      <p class="ordre">Dans l'ordre : le plan de traitement, puis la fiche d'intervention, qui remplit les trois documents suivants.</p>
+      <a class="doc" href="plan-de-traitement.html">
+        <span class="t"><span class="n">1</span>Plan de traitement</span>
+        <span class="s">Odontogramme, actes par dent, séances et rendez-vous.</span>
+      </a>
+      <a class="doc" href="fiche-intervention.html">
+        <span class="t"><span class="n">2</span>Fiche d'intervention</span>
+        <span class="s">Préparation opératoire : implants, matériel, PRF, alertes médicales, dictée.</span>
+      </a>
+      <a class="doc" href="liaison-prothese.html">
+        <span class="t"><span class="n">3</span>Fiche de liaison prothèse</span>
+        <span class="s">Pour le correspondant ou le laboratoire : transferts, scan bodies, analogues, délais.</span>
+      </a>
+      <a class="doc" href="passeport-implantaire.html">
+        <span class="t"><span class="n">4</span>Passeport chirurgie implantaire</span>
+        <span class="s">Modèle de l'Ordre : implants, greffe, mise en charge.</span>
+      </a>
+      <a class="doc" href="tracabilite.html">
+        <span class="t"><span class="n">5</span>Traçabilité de l'intervention</span>
+        <span class="s">Trousses, forets, implants, biomatériaux : lots scannés à la douchette ou cadres à étiquettes.</span>
       </a>
       <p class="note">Chaque document s'installe comme une application (icône ⊕ dans la barre d'adresse).</p>
     </div>
