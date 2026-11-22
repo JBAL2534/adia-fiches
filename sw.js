@@ -3,7 +3,7 @@
    la version en ligne (donc la plus récente) ; sans internet, ou si le réseau ne
    répond pas en 3 secondes, on sert la copie gardée. Aucune donnée de patient ici :
    seuls les fichiers de l'application sont concernés. */
-var CACHE="adia-fiches-v7";
+var CACHE="adia-fiches-v8";
 var FICHIERS=[
   "./","index.html",
   "fiche-intervention.html","plan-de-traitement.html","liaison-prothese.html",

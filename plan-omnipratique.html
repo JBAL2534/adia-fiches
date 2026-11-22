@@ -178,7 +178,7 @@
     if(!document.querySelector('meta[name="theme-color"]')){ var m=document.createElement('meta'); m.name='theme-color'; m.content='#173a63'; document.head.appendChild(m); }
     if(!document.querySelector('link[rel="apple-touch-icon"]')){ var a=document.createElement('link'); a.rel='apple-touch-icon'; a.href='icon-192.png'; document.head.appendChild(a); }
   }
-  var PLAN_ADIA_VERSION="omnipratique v1.2 · 22/11/2026";
+  var PLAN_ADIA_VERSION="omnipratique v1.3 · 22/11/2026";
   function ensureBadge(){
     if(!document.body) return;
     var v=document.getElementById('adia-plan-ver');
@@ -747,6 +747,15 @@ setInterval(function(){
   var sc=document.createElement("script"); sc.src="fiches-nav.js";
   sc.onload=sc.onerror=function(){ window.__adiaNavEnCours=false; };
   document.head.appendChild(sc);
+}, 600);
+// Bouton bien visible pour passer à l'étape suivante : la fiche d'intervention.
+setInterval(function(){
+  if(!document.body || document.getElementById("adia-suite-btn")) return;
+  var a=document.createElement("a"); a.id="adia-suite-btn"; a.href="fiche-omnipratique.html#plan";
+  a.textContent="Fiche d\u2019intervention  \u2192";
+  a.title="Étape suivante : la fiche d\u2019intervention de ce patient";
+  a.style.cssText="position:fixed;right:16px;bottom:172px;z-index:99999;padding:14px 18px;font:700 15px/1 -apple-system,Segoe UI,Arial,sans-serif;color:#fff;background:#173a63;border-radius:10px;box-shadow:0 4px 12px rgba(0,0,0,.28);text-decoration:none";
+  document.body.appendChild(a);
 }, 600);
 </script>
 <script id="adia-hors-ligne">

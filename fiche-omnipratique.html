@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<title>Fiche omnipratique – v1.1</title>
+<title>Fiche omnipratique – v1.2</title>
 <link rel="manifest" href="omni.webmanifest">
 <script src="fiches-nav.js" defer></script>
 <meta name="theme-color" content="#173a63">
@@ -209,7 +209,7 @@
 <div class="page">
   <div class="hdr">
     <div id="entete"></div>
-    <div class="hdr-title">Fiche d'intervention<span id="appver">Omnipratique · v1.1</span></div>
+    <div class="hdr-title">Fiche d'intervention<span id="appver">Omnipratique · v1.2</span></div>
   </div>
 
   <!-- Barre de dictée -->
@@ -610,6 +610,17 @@
       var nm=adiaApplyPatient(p.nom||"", p.dossier||"");
       if(msg) msg.textContent="Patient repris du plan : "+nm+(p.dossier?" / "+p.dossier:"");
     });
+    // Arrivée depuis le bouton « Fiche d'intervention → » du plan : le patient suit, sans rien écraser.
+    if(location.hash==="#plan"){
+      try{ history.replaceState(null,"",location.pathname+location.search); }catch(e){}
+      setTimeout(function(){
+        var p=null; try{ p=(JSON.parse(localStorage.getItem("omni_plan_current")||"null")||{}).p; }catch(e){}
+        if(!p || !(p.nom||p.dossier)) return;
+        var n=document.getElementById("nom").value.trim(), d=document.getElementById("dossier").value.trim(), msg=document.getElementById("importAdiaMsg");
+        if(!n && !d){ b.click(); }
+        else if((p.dossier||"")!==d && msg){ msg.textContent="Le plan concerne un autre patient ("+(p.nom||"")+(p.dossier?" / "+p.dossier:"")+") : cliquez « Reprendre le patient du plan » pour ouvrir sa fiche."; }
+      }, 900);
+    }
   })();
 
 
