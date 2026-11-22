@@ -54,5 +54,11 @@
       <p class="note">Chaque document s'installe comme une application (icône ⊕ dans la barre d'adresse).</p>
     </div>
   </div>
+<script>
+// Pages gardées en mémoire : après une première ouverture, tout fonctionne sans internet.
+if("serviceWorker" in navigator && /^https?:$/.test(location.protocol)){
+  window.addEventListener("load", function(){ navigator.serviceWorker.register("sw.js").catch(function(){}); });
+}
+</script>
 </body>
 </html>

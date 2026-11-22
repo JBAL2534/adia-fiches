@@ -4,8 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<title>Fiche intervention – v6.3</title>
+<title>Fiche intervention – v6.4</title>
 <link rel="manifest" href="manifest.webmanifest">
+<script src="fiches-nav.js" defer></script>
 <meta name="theme-color" content="#173a63">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
@@ -208,7 +209,7 @@
 <div class="page">
   <div class="hdr">
     <div id="entete"></div>
-    <div class="hdr-title">Fiche d'intervention<span id="appver">v6.3</span></div>
+    <div class="hdr-title">Fiche d'intervention<span id="appver">v6.4</span></div>
   </div>
 
   <!-- Barre de dictée -->
@@ -1330,10 +1331,16 @@
     var b=document.getElementById(d[0]); if(!b) return;
     b.addEventListener("click", function(){
       if(!implants.length){ if(!confirm("Aucun implant saisi. Ouvrir quand même "+d[3]+" ?")) return; }
-      try{ localStorage.setItem(HANDOFF, JSON.stringify(buildHandoff())); }catch(e){}
-      window.open(d[1],d[2]);
+      deposerHandoff();
+      location.href=d[1];   // même fenêtre : la barre du haut permet ensuite de passer d'un document à l'autre
     });
   });
+  // Les documents lisent toujours la fiche telle qu'elle est : on dépose les données
+  // à chaque fois qu'on quitte la fiche (barre du haut, autre onglet, fermeture).
+  function deposerHandoff(){ try{ localStorage.setItem(HANDOFF, JSON.stringify(buildHandoff())); }catch(e){} }
+  window.adiaAvantNavigation=deposerHandoff;
+  window.addEventListener("pagehide", deposerHandoff);
+  document.addEventListener("visibilitychange", function(){ if(document.visibilityState==="hidden") deposerHandoff(); });
 
   function flash(el){
     if(!el) return;

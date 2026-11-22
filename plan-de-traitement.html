@@ -178,7 +178,7 @@
     if(!document.querySelector('meta[name="theme-color"]')){ var m=document.createElement('meta'); m.name='theme-color'; m.content='#173a63'; document.head.appendChild(m); }
     if(!document.querySelector('link[rel="apple-touch-icon"]')){ var a=document.createElement('link'); a.rel='apple-touch-icon'; a.href='icon-192.png'; document.head.appendChild(a); }
   }
-  var PLAN_ADIA_VERSION="v1.8 · 19/08/2026";
+  var PLAN_ADIA_VERSION="v1.9 · 22/11/2026";
   function ensureBadge(){
     if(!document.body) return;
     var v=document.getElementById('adia-plan-ver');
@@ -186,6 +186,16 @@
       v.style.cssText='position:fixed;left:16px;bottom:16px;z-index:99998;padding:4px 9px;font:600 11px/1 -apple-system,Segoe UI,Arial,sans-serif;color:#1a3e6f;background:rgba(238,243,250,.95);border:1px solid #cdd8e8;border-radius:8px;box-shadow:0 1px 4px rgba(0,0,0,.12);pointer-events:none';
       document.body.appendChild(v); }
     v.textContent='Plan ADIA '+PLAN_ADIA_VERSION;
+    corrigerVersionEntete();
+  }
+  // L'en-tête affichait encore « v1.0 » : on y met le vrai numéro de version.
+  function corrigerVersionEntete(){
+    try{
+      var w=document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT), n, num=PLAN_ADIA_VERSION.split(" ")[0];
+      while((n=w.nextNode())){
+        if(/Plan de traitement\s*—\s*v1\.0\b/.test(n.nodeValue)){ n.nodeValue=n.nodeValue.replace(/v1\.0\b/, num); return; }
+      }
+    }catch(e){}
   }
   // ===== En-tête personnalisable (partagé avec la fiche via le même localStorage) =====
   var ENTETE_KEY="adia-entete-v1";
@@ -563,7 +573,7 @@ document.addEventListener('DOMContentLoaded', async function() {
   var PROP="adia-srv-plan-proprietaire", URLF="https://jbal2534.github.io/adia-fiches/plan-de-traitement.html";
   var DEPUIS_FICHIER=!!window.__FICHE_DATA__;   // plan ouvert depuis un ancien fichier .html du dossier : on enregistre, sans changer de patient
   var box=document.createElement("div"); box.id="dossierSrvPlan";
-  box.style.cssText="position:fixed;left:12px;bottom:12px;z-index:99998;max-width:min(560px,70vw);padding:8px 11px;font:13px/1.4 -apple-system,Segoe UI,Arial,sans-serif;color:#334;background:#fff;border:1px solid #cfdbec;border-radius:10px;box-shadow:0 3px 10px rgba(0,0,0,.15)";
+  box.style.cssText="position:fixed;left:12px;bottom:46px;z-index:99998;max-width:min(560px,70vw);padding:8px 11px;font:13px/1.4 -apple-system,Segoe UI,Arial,sans-serif;color:#334;background:#fff;border:1px solid #cfdbec;border-radius:10px;box-shadow:0 3px 10px rgba(0,0,0,.15)";
   var elDos={ get value(){ var i=document.querySelector('input[placeholder="Julie"]'); return i?i.value:""; }, set value(v){ var i=document.querySelector('input[placeholder="Julie"]'); if(i){ var d=Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,"value"); d.set.call(i,v); i.dispatchEvent(new Event("input",{bubbles:true})); } }, addEventListener:function(t,f){ document.addEventListener(t,function(e){ if(e.target && e.target.matches && e.target.matches('input[placeholder="Julie"]')) f(e); }, true); }, dispatchEvent:function(){} };
   (function poser(){ if(document.body){ document.body.appendChild(box); } else setTimeout(poser,200); })();
   var FS=!!window.showDirectoryPicker;
@@ -728,5 +738,11 @@ document.addEventListener('DOMContentLoaded', async function() {
     else if(++essais>200) clearInterval(t);
   }, 150);
 })();
+</script>
+<script id="adia-hors-ligne">
+// Pages gardées en mémoire : après une première ouverture, le plan fonctionne sans internet.
+if("serviceWorker" in navigator && /^https?:$/.test(location.protocol)){
+  window.addEventListener("load", function(){ navigator.serviceWorker.register("sw.js").catch(function(){}); });
+}
 </script></body>
 </html>
