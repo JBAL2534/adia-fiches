@@ -1,0 +1,15 @@
+{
+  "id": "/adia-fiches/plan-omni",
+  "name": "Plan de traitement omnipratique",
+  "short_name": "Plan omni",
+  "description": "Plan de traitement omnipratique : odontogramme, actes par dent, séances.",
+  "start_url": "plan-omnipratique.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#173a63",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

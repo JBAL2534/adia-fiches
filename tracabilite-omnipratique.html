@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Traçabilité omnipratique – v1.0</title>
+<meta name="theme-color" content="#173a63">
+<link rel="icon" href="icon-192.png">
+<script src="fiches-commun.js"></script>
+<script src="fiches-nav.js" defer></script>
+<style>
+  :root{ --bleu:#173a63; --gris:#555; }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;color:#111;background:#eceff3;line-height:1.35}
+  .page{max-width:860px;margin:0 auto;background:#fff;padding:18px 20px 40px}
+
+  .bar{background:#fff;padding:6px 0 10px;border-bottom:1px solid #ddd;margin-bottom:14px}
+  .btns{display:flex;gap:8px;flex-wrap:wrap}
+  .btns button{flex:1 1 auto;padding:11px 10px;font-size:15px;border:1px solid #ccc;background:#f4f6f9;border-radius:9px;cursor:pointer;min-width:120px}
+  .btns button.main{background:var(--bleu);color:#fff;border-color:var(--bleu);font-weight:700}
+  .btns button.green{background:#1a7a3a;color:#fff;border-color:#1a7a3a;font-weight:700}
+  .live{margin-top:8px;min-height:18px;font-size:13.5px;color:var(--gris);font-style:italic}
+  .hint{font-size:12.5px;color:#666;margin-top:6px}
+  .hint b{color:#333}
+
+  .doc{font-family:Georgia,"Times New Roman",serif;font-size:14px}
+  .tete{font-weight:700;font-size:16px;letter-spacing:.2px;margin-bottom:10px;border-bottom:2px solid var(--bleu);padding-bottom:6px}
+  .pat{font-weight:700;margin:0 0 2px}
+  .acte{margin:0 0 12px}
+  h3{font:700 14.5px/1.2 Georgia,"Times New Roman",serif;margin:16px 0 5px}
+  .ed{display:inline-block;min-width:30px;padding:0 3px;border-bottom:1px dotted #aaa;outline:none}
+  .ed:focus,.zone:focus{background:#fff8d6}
+  .ligne{display:grid;gap:10px;margin-bottom:8px}
+  .c2{grid-template-columns:1fr 1fr}
+  .c3{grid-template-columns:1fr 1fr 1fr}
+  .c12{grid-template-columns:1fr 1.6fr}
+  .zone{border:1px solid #444;min-height:70px;padding:6px 8px;font:13px/1.35 "Courier New",monospace;white-space:pre-wrap;outline:none;overflow-wrap:anywhere}
+  .zone:empty::before{content:attr(data-ph);color:#b3b3b3;font:italic 12px/1.3 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif}
+  .cas{border:1px solid #444}
+  .cas > .lab{font:700 12.5px/1.2 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;padding:4px 8px 0}
+  .cas > .zone{border:none;min-height:58px}
+  .imp{display:grid;grid-template-columns:1.1fr 1fr;gap:14px;align-items:start;margin-bottom:8px}
+  .imp .cote{font-weight:700;line-height:1.9}
+  .empty{padding:30px 10px;text-align:center;color:#666;font-size:15px;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif}
+  .empty a{color:var(--bleu)}
+
+  @media (max-width:600px){ .c3{grid-template-columns:1fr 1fr} .c12,.imp{grid-template-columns:1fr} }
+  @media print{
+    body{background:#fff}
+    .page{max-width:none;padding:0}
+    .bar,.noprint{display:none !important}
+    .ed{border-bottom:none}
+    .zone:empty::before{content:""}
+    .ligne,.imp,.cas{break-inside:avoid}
+    @page{size:A4;margin:13mm 13mm 11mm}
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="bar noprint">
+    <div class="btns">
+      <button id="classerAdia" class="green">📁 Classer dans le dossier du patient (ADIA)</button>
+      <button id="savefolder" class="main" style="display:none">💾 Word dans le dossier</button>
+      <button id="word">📝 Word</button>
+      <button id="print">🖨️ Imprimer</button>
+      <button id="reload" title="Recharger depuis la fiche d'intervention">↻ Depuis la fiche</button>
+      <button id="vider" title="Efface les étiquettes saisies pour ce patient">🧹 Vider les étiquettes</button>
+    </div>
+    <div id="live" class="live"></div>
+    <div class="hint"><b>Les cadres suivent la fiche d'intervention</b> : une cassette par discipline, un cadre par produit coché. Cliquez dans un cadre puis scannez l'étiquette à la douchette : la référence, le lot et la péremption s'écrivent tout seuls. Ou laissez le cadre vide pour y coller l'étiquette après impression. Les gants sont retenus d'un patient à l'autre.</div>
+  </div>
+
+  <div id="doc" class="doc"></div>
+
+</div>
+
+<script>
+(function(){
+  "use strict";
+  var F=window.ADIA_FICHES, esc=F.esc;
+  var STORE="omni-tracabilite-v1", GANTS="omni-gants-v1";
+  var doc=document.getElementById("doc");
+  function texte(el){ return el.innerText!=null ? el.innerText : el.textContent; }
+  var data=F.load();
+
+  /* Cassette stérilisée attendue pour chaque discipline. */
+  var CASSETTES={
+    "Chirurgie":"Trousse chirurgicale",
+    "Endodontie":"Cassette endodontie",
+    "Soins conservateurs":"Cassette soins conservateurs",
+    "Prothèse":"Cassette prothèse",
+    "Parodontie":"Cassette parodontie / inserts",
+    "Implantologie":"Trousse implantologie"
+  };
+  /* Matériel de la liste d'origine qui est un instrument (pas de lot à tracer) : tout le reste a son cadre. */
+  var SANS_LOT=/^(an_tronc|an_intralig|ch_daviers|ch_elev|ch_lame|ch_decol|ch_fraise|ch_curette|en_digue|en_apex|en_limes|en_niti|re_digue|re_matrice|re_polissage|pr_pe|pr_optique|pr_occlu|pr_teintier|pa_sonde|pa_us|pa_curettes|pa_aero|im_trousse|im_moteur|im_guide)$/;
+
+  function lireStore(){ try{ return JSON.parse(localStorage.getItem(STORE)||"{}")||{}; }catch(e){ return {}; } }
+  function ecrireStore(o){ try{ localStorage.setItem(STORE, JSON.stringify(o)); }catch(e){} }
+  function lireGants(){ try{ return JSON.parse(localStorage.getItem(GANTS)||"{}")||{}; }catch(e){ return {}; } }
+  function saisies(){ return lireStore()[F.cle(data)]||{}; }
+
+  function zone(id, ph, defaut){
+    var s=saisies(), g=lireGants();
+    var val = (id in s) ? s[id] : (/^gant/.test(id) && (id in g) ? g[id] : (defaut||""));
+    return '<div class="zone" contenteditable="true" data-id="'+esc(id)+'" data-ph="'+esc(ph||"Scanner ou coller l’étiquette")+'">'+esc(val)+'</div>';
+  }
+  function champ(id, defaut){ var s=saisies(), val=(id in s)?s[id]:(defaut||"");
+    return '<span class="ed" contenteditable="true" data-id="'+esc(id)+'">'+esc(val)+'</span>'; }
+  function cas(titre, id){ return '<div class="cas"><div class="lab">'+esc(titre)+'</div>'+zone(id,"")+'</div>'; }
+  function grille(cases){ var h=""; for(var i=0;i<cases.length;i+=3) h+='<div class="ligne c3">'+cases.slice(i,i+3).join("")+'</div>'; return h; }
+
+  function disciplines(){
+    var out=[]; (data.actes||[]).forEach(function(a){ if(a.disc && out.indexOf(a.disc)<0) out.push(a.disc); });
+    if((data.implants||[]).length && out.indexOf("Implantologie")<0) out.push("Implantologie");
+    return out;
+  }
+  function acteAuto(){
+    var p=(data.actes||[]).map(function(a){ return [a.acte||a.disc, a.dent].filter(Boolean).join(" "); });
+    var dents=[]; (data.implants||[]).forEach(function(i){ F.dentsOf(i.dent).forEach(function(d){ if(dents.indexOf(d)<0) dents.push(d); }); });
+    if((data.implants||[]).length) p.push("implant(s) "+dents.join(", "));
+    return p.join(" + ");
+  }
+  function produits(){
+    var out=[]; (data.materiel||[]).forEach(function(g){ (g.items||[]).forEach(function(it){ if(!SANS_LOT.test(it.id||"")) out.push({id:it.id, label:it.label, groupe:g.titre}); }); });
+    return out;
+  }
+
+  function render(){
+    if(!data || (!data.nom && !(data.actes||[]).length && !(data.implants||[]).length)){
+      doc.innerHTML='<div class="empty">Aucune intervention à reprendre.<br>Ouvrez la <a href="fiche-omnipratique.html">fiche d’intervention</a>, saisissez les actes, puis revenez ici.</div>';
+      return;
+    }
+    var d=F.parseDateFr(data.date), h='';
+    h+='<div class="tete">TRAÇABILITÉ — SOIN DU '+esc(d?F.fmtLong(d):(data.date||""))+'</div>'
+      +'<p class="pat">Nom et prénom du patient : '+esc((data.nom||"").toUpperCase()+" "+(data.prenom||""))+(data.dossier?' — dossier n° '+esc(data.dossier):'')+'</p>'
+      +'<p class="acte">'+champ("acte", acteAuto())+'</p>';
+
+    h+='<h3>Plateau d’examen</h3><div class="ligne c12">'+zone("plateau","Étiquette de stérilisation")+zone("plateau_ind","Indicateur de stérilisation")+'</div>';
+    disciplines().forEach(function(n,i){
+      var t=CASSETTES[n]||("Cassette "+n);
+      h+='<h3>'+esc(t)+'</h3><div class="ligne c12">'+zone("cas_"+F.slug(n),"Étiquette de stérilisation")+zone("cas_"+F.slug(n)+"_ind","Indicateur de stérilisation")+'</div>';
+    });
+    h+='<h3>Instruments rotatifs</h3>'+grille([cas("Turbine","rot_turbine"), cas("Contre-angle","rot_ca"), cas("Pièce à main","rot_pm")]);
+
+    h+='<h3>Gants</h3><div class="ligne c2">'
+      +zone("gant1","Praticien : modèle, taille, réf, lot, péremption", (F.entete().dentiste||"")+"\n")
+      +zone("gant2","Assistante : modèle, taille, réf, lot, péremption")+'</div>';
+
+    var pr=produits(), cases=[];
+    if(!pr.some(function(p){ return /^an_/.test(p.id||"") || /anesth/i.test(p.groupe||""); })) cases.push(cas("Anesthésique","p_anesthesique"));
+    pr.forEach(function(p){ cases.push(cas(p.label, "p_"+F.slug(p.id||p.label))); });
+    h+='<h3>Produits utilisés — référence, lot, péremption</h3>'+grille(cases);
+
+    var imps=data.implants||[];
+    if(imps.length){
+      h+='<h3>Implant(s)</h3>';
+      imps.forEach(function(i,k){
+        var sp=F.parseSpec(i.spec), l=[];
+        l.push([i.sys, (i.spec||"").replace(/\s*\/?\s*r[ée]f.*$/i,"").trim()].filter(Boolean).join(" "));
+        if(sp.ref) l.push("REF "+sp.ref); if(sp.lot) l.push("LOT "+sp.lot);
+        h+='<div class="imp">'+zone("imp"+k,"",l.filter(Boolean).join("\n"))
+          +'<div class="cote">Dent n° '+champ("imp"+k+"_dent", i.dent||"")+'<br>Serrage moteur : '+champ("imp"+k+"_n","")+' N<br>Clef : '+champ("imp"+k+"_clef","")+'</div></div>';
+      });
+    }
+    if(disciplines().indexOf("Prothèse")>=0){
+      h+='<h3>Prothèse sur mesure</h3><div class="ligne c2">'+cas("Laboratoire — n° de la déclaration de conformité","dsm_labo")+cas("Matériaux — lots communiqués par le laboratoire","dsm_lots")+'</div>';
+    }
+    h+='<h3>Autre</h3>'+grille([zone("a1"),zone("a2"),zone("a3")]);
+    doc.innerHTML=h;
+  }
+
+  /* ---- mémorisation de chaque saisie, par patient et date ---- */
+  function memoriser(el){
+    var id=el.getAttribute("data-id"); if(!id) return;
+    var txt=texte(el).replace(/ /g," ").replace(/\n+$/,"");
+    var o=lireStore(), k=F.cle(data); o[k]=o[k]||{}; o[k][id]=txt; ecrireStore(o);
+    if(/^gant/.test(id)){ var g=lireGants(); g[id]=txt; try{ localStorage.setItem(GANTS, JSON.stringify(g)); }catch(e){} }
+  }
+  function interpreter(el){
+    var r=F.lireGs1(texte(el));
+    if(!r) return false;
+    el.textContent=r.texte; memoriser(el); return true;
+  }
+  doc.addEventListener("input", function(e){ var el=e.target.closest("[data-id]"); if(el) memoriser(el); });
+  doc.addEventListener("keydown", function(e){
+    var el=e.target.closest(".zone"); if(!el) return;
+    if(e.ctrlKey && e.key==="]"){ e.preventDefault(); document.execCommand("insertText", false, "\x1d"); return; }   /* séparateur GS1 envoyé par la douchette */
+    if(e.key==="Enter" && interpreter(el)){ e.preventDefault(); bar.dire("✓ Étiquette lue : "+el.textContent.replace(/\n/g," · ")); }
+  });
+  doc.addEventListener("paste", function(e){ var el=e.target.closest(".zone"); if(el) setTimeout(function(){ interpreter(el); },0); });
+
+  var bar=F.barre({
+    titre:function(){ return F.titreFichier(data,"Tracabilite"); },
+    dossier:function(){ return data&&data.dossier; },
+    recharger:function(){ data=F.load(); render(); bar.dire(data?"✓ Données rechargées depuis la fiche d’intervention.":"Aucune donnée dans la fiche d’intervention."); }
+  });
+  document.getElementById("vider").addEventListener("click", function(){
+    if(!data) return;
+    if(!confirm("Effacer les étiquettes saisies pour ce patient ? Les gants mémorisés sont conservés.")) return;
+    var o=lireStore(); delete o[F.cle(data)]; ecrireStore(o); render(); bar.dire("Étiquettes effacées pour ce patient.");
+  });
+  render();
+})();
+</script>
+</body>
+</html>

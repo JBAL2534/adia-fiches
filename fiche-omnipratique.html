@@ -1,0 +1,2379 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Fiche omnipratique – v1.0</title>
+<link rel="manifest" href="omni.webmanifest">
+<script src="fiches-nav.js" defer></script>
+<meta name="theme-color" content="#173a63">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-title" content="Fiche">
+<style>
+  :root{
+    --bleu:#1a3e6f; --gris:#555; --bord:#333; --ok:#1e7a3a; --surl:#fff3b0;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+    color:#111; background:#eceff3; line-height:1.4; -webkit-text-size-adjust:100%;
+  }
+  .page{max-width:820px; margin:0 auto; background:#fff; padding:18px 20px 40px;}
+
+  /* Barre de dictée (défile avec la page) */
+  .bar{
+    background:#fff; padding:10px 0;
+    border-bottom:1px solid #ddd; margin-bottom:14px;
+  }
+  .mic{
+    display:flex; align-items:center; justify-content:center; gap:10px;
+    width:100%; padding:16px; font-size:19px; font-weight:700; color:#fff;
+    background:var(--bleu); border:none; border-radius:12px; cursor:pointer;
+  }
+  .mic.on{background:#b0243a; animation:pulse 1.2s infinite}
+  @keyframes pulse{0%{opacity:1}50%{opacity:.75}100%{opacity:1}}
+  /* Micro flottant : reste accessible même en bas de page */
+  .micfab{
+    position:fixed; right:16px; bottom:16px; z-index:60;
+    width:60px; height:60px; border-radius:50%; border:none; cursor:pointer;
+    background:var(--bleu); color:#fff; font-size:26px; line-height:60px;
+    box-shadow:0 4px 12px rgba(0,0,0,.28); display:none;
+  }
+  .micfab.on{background:#b0243a; animation:pulse 1.2s infinite}
+  .micfab.show{display:block}
+  .live{
+    margin-top:8px; min-height:20px; font-size:14px; color:var(--gris);
+    font-style:italic; word-break:break-word;
+  }
+  .cmdlog{margin-top:6px; font-size:13.5px}
+  .cmdlog .cmditem{padding:3px 0; display:flex; gap:8px; align-items:baseline; flex-wrap:wrap}
+  .cmdlog .ok{color:var(--ok)}
+  .cmdlog .ko{color:#b0243a}
+  .cmdlog .undo{color:var(--bleu); font-size:12.5px; white-space:nowrap}
+  .cmdlog .undone{opacity:.45; text-decoration:line-through}
+  .btns{display:flex; gap:8px; margin-top:8px; flex-wrap:wrap}
+  .btns button{
+    flex:1 1 auto; padding:11px 10px; font-size:15px; border:1px solid #ccc;
+    background:#f4f6f9; border-radius:9px; cursor:pointer; min-width:120px;
+  }
+  details.aide{margin-top:8px; font-size:14px}
+  details.aide summary{cursor:pointer; color:var(--bleu); font-weight:600}
+  details.aide ul{margin:8px 0 0; padding-left:18px; color:#333}
+  details.aide code{background:#f0f2f5; padding:1px 5px; border-radius:4px}
+
+  /* En-tête fiche */
+  h1{
+    text-align:center; font-style:italic; font-size:26px; letter-spacing:.5px;
+    margin:6px 0 20px; font-family:Georgia,"Times New Roman",serif;
+  }
+  .ident{border:1px solid #ccc; border-radius:10px; padding:10px 12px; margin-bottom:16px;}
+  .row{display:flex; align-items:center; gap:8px; margin:6px 0; flex-wrap:wrap}
+  .row label{font-weight:600; min-width:78px}
+  input[type=text]{
+    flex:1 1 140px; min-width:120px; padding:9px 10px; font-size:16px;
+    border:1px solid #bbb; border-radius:8px;
+  }
+  input[type=text].sm{flex:0 1 130px}
+  input[type=text].qty{flex:0 0 62px; width:62px; text-align:center; font-weight:600}
+  textarea{width:100%; padding:10px 11px; font-size:16px; border:1px solid #bbb;
+    border-radius:8px; resize:vertical; font-family:inherit; line-height:1.4}
+
+  section{border-top:2px solid #222; padding:12px 0; }
+  section > h2{font-size:16px; margin:0 0 10px; text-transform:uppercase; letter-spacing:.3px}
+
+  /* Pastilles tactiles : tout le libellé est un bouton */
+  .chk{display:inline-flex; align-items:center; gap:8px; margin:5px 8px 5px 0;
+    padding:11px 15px; border:1.6px solid #cbd2dc; border-radius:999px; background:#fff;
+    cursor:pointer; font-size:16px; user-select:none; -webkit-tap-highlight-color:transparent;
+    transition:background .08s, border-color .08s}
+  .chk:active{transform:scale(.98)}
+  .chk:has(input:checked){border-color:#d40000; background:#fdeaea; color:#9a1b2c; font-weight:600}
+  .chk input[type=checkbox]{
+    -webkit-appearance:none; appearance:none; margin:0; flex:0 0 auto;
+    width:22px; height:22px; border:1.5px solid var(--bord); border-radius:4px;
+    background:#fff; position:relative; cursor:pointer;
+  }
+  .chk input[type=checkbox]:checked::after{
+    content:"✕"; position:absolute; left:50%; top:50%;
+    transform:translate(-50%,-54%); color:#d40000; font-size:21px;
+    font-weight:700; line-height:1;
+  }
+  .grid{display:flex; flex-wrap:wrap}
+  .sub{margin:4px 0 4px 6px}
+  .sub .cat{font-weight:600; margin-right:6px; display:inline-block; min-width:98px}
+  .implant-line{display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin:8px 0}
+  .implant-line .chk{margin-right:6px}
+  .implant-line .idx{font-weight:700; color:var(--bleu); min-width:20px}
+  .implant-line select.impsys{padding:9px 8px; font-size:15px; border:1px solid #bbb;
+    border-radius:8px; background:#fff; flex:0 0 auto}
+  .implant-line input[type=text]{flex:1 1 90px; min-width:80px; padding:9px 10px;
+    font-size:16px; border:1px solid #bbb; border-radius:8px}
+  .implant-line .del{margin-left:auto; border:none; background:transparent; color:#b0243a;
+    font-size:16px; cursor:pointer; padding:0 4px}
+  .addbtn.alt{background:#3a6ea5}
+  #impEmpty{color:#888; font-style:italic; font-size:14px; margin:6px 0}
+
+  .addbtn{flex:0 0 auto; padding:10px 14px; font-size:15px; font-weight:600; color:#fff;
+    background:var(--bleu); border:none; border-radius:8px; cursor:pointer}
+  .addbtn.on{background:#b0243a; animation:pulse 1.2s infinite}
+  #customList .chk{border:1px solid #d5dae2; border-radius:8px; padding:5px 6px 5px 8px; background:#f8fafc}
+  #customList .del{margin-left:2px; border:none; background:transparent; color:#b0243a;
+    font-size:15px; cursor:pointer; padding:0 4px; line-height:1}
+  .surl{background:var(--surl); transition:background .1s}
+  .warn{background:#fff3cd; border:1px solid #ffe08a; color:#7a5b00; padding:8px 10px;
+    border-radius:8px; font-size:13px; margin-top:10px}
+
+  @media print{
+    body{background:#fff}
+    .bar,.btns,.aide,.warn,.live,.addrow,#customList .del{display:none !important}
+    .chk{border:none !important; background:none !important; padding:0 !important;
+      color:#000 !important; font-weight:normal !important; margin:4px 14px 4px 0 !important}
+    #customList .chk{border:none; background:none; padding:0}
+    .page{max-width:100%; padding:0}
+    section{border-top:2px solid #000}
+    input[type=text]{border:none; border-bottom:1px solid #000; border-radius:0}
+    .chk input[type=checkbox]{width:16px; height:16px; border:1.5px solid #000}
+    .chk input[type=checkbox]:checked::after{color:#d40000; font-size:18px;
+      -webkit-print-color-adjust:exact; print-color-adjust:exact}
+  }
+
+  /* ===== Refonte visuelle v5.1 : aspect « carte » comme le plan de traitement ===== */
+  body{ background:#eef1f5; }
+  .page{ max-width:900px; margin:22px auto 46px; background:#fff; border-radius:18px;
+    box-shadow:0 12px 34px rgba(20,40,80,.12); padding:0; overflow:hidden; }
+  .page > *:not(.hdr){ padding-left:26px; padding-right:26px; }
+  .hdr{ background:linear-gradient(160deg,#22528f,#173a63); color:#fff; display:flex;
+    align-items:center; justify-content:space-between; gap:18px; flex-wrap:wrap; padding:20px 26px; }
+  .hdr #entete{ text-align:left; margin:0; flex:1 1 260px; }
+  .hdr-title{ font:800 14px/1.2 -apple-system,"Segoe UI",Arial,sans-serif; letter-spacing:.16em;
+    text-transform:uppercase; color:#cfe2f6; text-align:right; }
+  .hdr-title #appver{ display:block; margin-top:3px; font-size:11px; letter-spacing:.06em; color:#9db8db; font-weight:600; }
+  .ident{ background:#f7f9fc; border:1px solid #e4e9f2; border-radius:14px; padding:14px 16px; margin:16px 0; }
+  .ident .row label{ color:#3a4a66; }
+  section{ border-top:1px solid #e7ebf2; padding:16px 0; }
+  section > h2{ color:#173a63; font-size:15px; letter-spacing:.05em; }
+  input[type=text], textarea, select, input[type=date]{ border:1px solid #d3dae6; border-radius:10px; background:#fff; }
+  input[type=text]:focus, textarea:focus, select:focus, input[type=date]:focus{
+    outline:none; border-color:#2a5aa0; box-shadow:0 0 0 3px rgba(42,90,160,.15); }
+  .btns{ gap:10px; margin-top:14px; }
+  .btns button{ border-radius:10px; }
+  #classerAdia{ box-shadow:0 4px 12px rgba(26,122,58,.22); }
+  #iaDicteeBtn{ box-shadow:0 4px 14px rgba(26,62,111,.22); }
+  @media print{
+    body{ background:#fff; }
+    .page{ box-shadow:none; border-radius:0; }
+    .hdr{ background:#fff !important; color:#000 !important; padding:0 0 6px !important; border-bottom:2px solid #000; }
+    .hdr #entete *{ color:#000 !important; }
+    .hdr-title{ display:none !important; }
+  }
+
+  /* ===== Harmonisation v5.2 : identité en grille, libellé AU-DESSUS (comme le plan) ===== */
+  .ident{ display:grid; grid-template-columns:1fr 1fr; gap:12px 16px; }
+  .ident .row{ display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin:0; }
+  .ident .row > label{ flex:0 0 100%; margin:0 0 3px; font:700 11px/1.2 -apple-system,"Segoe UI",Arial,sans-serif;
+    text-transform:uppercase; letter-spacing:.08em; color:#6b7a90; min-width:0; }
+  .ident .row input[type=text]{ flex:1 1 150px; padding:12px 12px; font-size:16px; }
+  .ident .row input[type=text].sm{ flex:1 1 120px; }
+  .ident .row select{ padding:11px 10px; border-radius:10px; }
+  .ident .row:nth-child(1), .ident .row:nth-child(2){ grid-column:1 / -1; }   /* Patient ADIA + Correspondant pleine largeur */
+  @media(max-width:600px){ .ident{ grid-template-columns:1fr; } .ident .row{ grid-column:1 / -1 !important; } }
+
+  /* ===== v5.3 : alertes médicales (chips cliquables, comme le plan) ===== */
+  #alertList{ display:flex; flex-wrap:wrap; gap:8px; }
+  .achip{ display:inline-flex; align-items:center; gap:8px; padding:9px 13px; border:1.6px solid #cbd2dc;
+    border-radius:999px; background:#fff; cursor:pointer; font-size:14px; font-weight:700; color:#3a4a66;
+    letter-spacing:.02em; user-select:none; -webkit-tap-highlight-color:transparent;
+    transition:background .08s, border-color .08s, color .08s; }
+  .achip:active{ transform:scale(.98); }
+  .achip input[type=checkbox]{ display:none; }
+  .achip:has(input:checked){ border-color:#d40000; background:#fdeaea; color:#9a1b2c; }
+  .achip .ax{ border:none; background:transparent; color:#b0243a; font-size:12px; line-height:1;
+    cursor:pointer; padding:0; opacity:.5; }
+  .achip .ax:hover{ opacity:1; }
+  #alertNew{ padding:10px 12px; }
+  @media print{
+    #alertList{ gap:6px; }
+    .achip{ border:1px solid #999 !important; background:none !important; padding:2px 8px !important; font-weight:normal !important; }
+    .achip:has(input:checked){ color:#d40000 !important; border-color:#d40000 !important; font-weight:700 !important;
+      -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+    .achip .ax{ display:none !important; }
+    .addrow{ display:none !important; }
+  }
+</style>
+</head>
+<body>
+<button id="micFab" class="micfab" title="Dictée" aria-label="Démarrer/arrêter la dictée">🎤</button>
+<div class="page">
+  <div class="hdr">
+    <div id="entete"></div>
+    <div class="hdr-title">Fiche d'intervention<span id="appver">Omnipratique · v1.0</span></div>
+  </div>
+
+  <!-- Barre de dictée -->
+  <div class="bar">
+    <button id="mic" class="mic">🎤 Démarrer la dictée</button>
+    <div id="live" class="live">Appuyez sur le micro et dictez <b>une commande, puis marquez une pause</b>. Ex : « avulsion oui » … « implant active 16 21 » … « comblement purgo zéro cinq » … « membrane txt 200 » … « prf quatre tubes rouges » … « nom Dupont ».</div>
+    <div id="cmdlog" class="cmdlog"></div>
+    <div class="btns">
+      <button id="classerAdia" style="flex-basis:100%;padding:14px;font:700 16px/1 sans-serif;color:#fff;background:#1a7a3a;border:none;border-radius:10px;cursor:pointer">📁 Classer dans le dossier du patient (ADIA)</button>
+      <div id="classerMsg" style="flex-basis:100%;font-size:13px;color:#1a7a3a;min-height:16px"></div>
+      <div id="dossierSrv" style="flex-basis:100%;font-size:13px;color:#445;line-height:1.4"></div>
+      <button id="savefolder" style="display:none">💾 Enregistrer (Word) dans le dossier</button>
+      <button id="pdffolder" style="display:none">📄 PDF dans le dossier</button>
+      <button id="share">📤 Envoyer le PDF</button>
+      <button id="word">📝 Word</button>
+      <button id="print">🖨️ Imprimer</button>
+      <button id="labo" title="Fiche de laboratoire : travail demandé, teinte, matériau, délais">🧪 Fiche de laboratoire</button>
+      <button id="consignes" title="Consignes remises au patient après l'acte">📋 Consignes au patient</button>
+      <button id="tracabilite" title="Feuille de traçabilité : stérilisation, lots des produits utilisés">🏷️ Traçabilité</button>
+      <button id="passeport" title="Passeport chirurgie implantaire (modèle de l'Ordre), si des implants sont posés">🛂 Passeport implantaire</button>
+      <button id="reset">↺ Réinitialiser</button>
+    </div>
+    <div id="changeFolderWrap" style="display:none; font-size:13px; margin-top:4px; color:#555">
+      📁 Enregistrer les documents dans : <a href="#" id="changeFolder">choisir le dossier du patient</a>
+    </div>
+    <details class="aide">
+      <summary>Commandes vocales</summary>
+      <ul>
+        <li>Identité : <code>correspondant …</code>, <code>nom …</code>, <code>prénom …</code>, <code>dossier …</code>, <code>date …</code></li>
+        <li>Intervention : <code>description …</code> (ou touchez le cadre et dictez avec le clavier)</li>
+        <li>Avulsion : <code>avulsion oui</code> / <code>avulsion non</code></li>
+        <li>Implants : <code>implant active 16</code>, <code>implant parallel 21 23 25</code> (plusieurs dents = plusieurs implants). Ø/longueur à préciser à la main.</li>
+        <li>Matériel : dites le nom → <code>pilier provisoire</code>, <code>pins</code>, <code>creos zéro cinq</code>, <code>purgo zéro cinq</code>, <code>gto</code>, <code>biobank</code>, <code>txt 200</code>, <code>contre-angle rouge</code>, <code>pièce à main</code>, <code>guide labo</code>, <code>empreinte alv/wyart</code>, <code>forets versah</code></li>
+        <li>PRF (nombre variable) : <code>six tubes rouges</code>, <code>deux tubes blancs</code></li>
+        <li>Autre élément : <code>ajoute …</code> (ex. « ajoute vis de couverture »)</li>
+        <li>Correction : <code>décoche …</code>, <code>efface nom</code></li>
+      </ul>
+    </details>
+    <details class="aide">
+      <summary>📖 Vocabulaire personnalisé<span id="vocabCount"></span></summary>
+      <p style="margin:8px 0 6px; color:#333">Un nom par ligne (correspondants, noms de patients, marques…). La dictée corrigera automatiquement ce qu'elle entend vers ces orthographes, dans les champs Correspondant / NOM / Prénom, la description et les ajouts.</p>
+      <textarea id="vocabTa" rows="5" placeholder="Dr Bonnaud&#10;WEILL&#10;Straumann…"></textarea>
+      <div class="row addrow" style="margin-top:6px"><button id="vocabSave" type="button" class="addbtn">Enregistrer le vocabulaire</button><span id="vocabMsg" style="font-size:13px;color:var(--ok)"></span></div>
+    </details>
+    <div id="warn" class="warn" style="display:none"></div>
+  </div>
+
+  <!-- Identité -->
+  <div class="ident">
+    <div class="row"><label>Patient ADIA</label><button type="button" id="importAdia" class="addbtn" style="flex:0 0 auto">⬇ Importer le patient (ADIA)</button><button type="button" id="reprendrePlan" class="addbtn alt" style="flex:0 0 auto" title="Reprend le nom et le n° de dossier saisis dans le plan de traitement omnipratique">⬇ Reprendre le patient du plan</button><span id="importAdiaMsg" style="font-size:12px;color:#666;margin-left:8px"></span></div>
+    <div class="row"><label>Correspondant</label><select id="corrSelect" style="flex:0 0 auto;max-width:190px"><option value="">— Choisir —</option></select><input type="text" id="correspondant" placeholder="ou saisir un nouveau" autocomplete="off"><button type="button" id="corrDel" title="Supprimer le correspondant sélectionné" class="addbtn" style="flex:0 0 auto">✕</button></div>
+    <div class="row"><label>NOM</label><input type="text" id="nom" autocomplete="off"></div>
+    <div class="row"><label>PRÉNOM</label><input type="text" id="prenom" autocomplete="off"></div>
+    <div class="row"><label>N° DOSSIER</label><input type="text" id="dossier" class="sm" autocomplete="off"></div>
+    <div class="row"><label>DATE interv.</label><input type="text" id="date" placeholder="ex : mardi 07/07/2026" autocomplete="off"><input type="date" id="datePick" title="Choisir dans le calendrier" style="flex:0 0 auto;max-width:170px"></div>
+  </div>
+
+  <!-- Alertes médicales -->
+  <section>
+    <h2>⚠️ Alertes médicales <span style="font-weight:normal;text-transform:none;letter-spacing:0;color:#6b7a90;font-size:12px">— cliquez pour activer</span></h2>
+    <div id="alertList"></div>
+    <div class="row addrow" style="margin-top:10px">
+      <input type="text" id="alertNew" placeholder="+ nouvelle alerte" style="flex:1 1 180px">
+      <button id="alertAdd" type="button" class="addbtn">Ajouter</button>
+    </div>
+  </section>
+
+  <!-- Description de l'intervention -->
+  <section>
+    <h2>Intervention</h2>
+    <div class="row addrow" style="margin:0 0 8px"><button id="descMic" type="button" class="addbtn">🎤 Dicter ici</button><span style="font-size:13px;color:#777">le texte dicté s'ajoute au cadre, mot pour mot</span></div>
+    <textarea id="description" rows="4" placeholder="Décrire le geste opératoire…"></textarea>
+  </section>
+
+  <!-- 1 -->
+  <section>
+    <h2>1/ Actes prévus <span style="font-weight:normal;text-transform:none;letter-spacing:0;color:#6b7a90;font-size:12px">— une ligne par acte</span></h2>
+    <div id="acteList"></div>
+    <div class="row addrow"><span id="discBtns" style="display:contents"></span></div>
+    <div id="acteDatalists"></div>
+  </section>
+
+  <!-- 2 -->
+  <section>
+    <h2>2/ Implants <span style="font-weight:normal;text-transform:none;letter-spacing:0;color:#6b7a90;font-size:12px">— seulement si une pose est prévue</span></h2>
+    <div class="row" style="margin:0 0 6px"><span style="font-weight:600;font-size:14px">Avulsion – implantation immédiate</span>
+      <label class="chk"><input type="checkbox" id="avul_oui"> oui</label>
+      <label class="chk"><input type="checkbox" id="avul_non"> non</label>
+    </div>
+    <div id="implantList"></div>
+    <div class="row addrow">
+      <span id="sysBtns" style="display:contents"></span>
+    </div>
+    <div class="row addrow" id="sysEditRow" style="display:none">
+      <input type="text" id="sysNew" placeholder="+ nouveau système (ex. Straumann BLX)" style="flex:1 1 200px">
+      <button id="sysAdd" type="button" class="addbtn">Ajouter</button>
+    </div>
+  </section>
+
+  <!-- 3 -->
+  <section>
+    <h2>3/ Matériel <span style="font-weight:normal;text-transform:none;letter-spacing:0;color:#6b7a90;font-size:12px">— suit les actes prévus</span> <button id="matEditBtn" type="button" class="addbtn" style="float:right;font-size:13px;padding:4px 10px">✏️ Modifier la liste</button></h2>
+    <div id="matGroups"></div>
+  </section>
+
+  <!-- 4 -->
+  <section>
+    <h2>4/ PRF</h2>
+    <div id="prfList"></div>
+    <div class="row addrow">
+      <button id="prfAdd" type="button" class="addbtn">＋ Élément PRF…</button>
+      <button id="prfEditBtn" type="button" class="addbtn alt">✎ Modifier / retirer</button>
+    </div>
+  </section>
+
+  <!-- Autres -->
+  <section>
+    <h2>Autres éléments</h2>
+    <div id="customList" class="grid"></div>
+    <div class="row addrow">
+      <input type="text" id="customInput" placeholder="Ajouter un élément…" autocomplete="off">
+      <button id="customAdd" type="button" class="addbtn">＋ Ajouter</button>
+    </div>
+  </section>
+
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  // --- Sauvegarde auto locale (le téléphone garde le contenu) ---
+  var STORE = "omni-fiche-v1";
+  function fields(){ return document.querySelectorAll("input, textarea"); }
+  function skip(el){ return !el.id || el.id==="customInput" || el.id==="vocabTa" || el.id==="alertNew" || el.id==="sysNew"; }
+  function save(){
+    var o={};
+    fields().forEach(function(el){ if(skip(el)) return; o[el.id] = el.type==="checkbox"?el.checked:el.value; });
+    try{ localStorage.setItem(STORE, JSON.stringify(o)); }catch(e){}
+  }
+  function load(){
+    try{
+      var o=JSON.parse(localStorage.getItem(STORE)||"{}");
+      fields().forEach(function(el){
+        if(skip(el) || !(el.id in o)) return;
+        if(el.type==="checkbox") el.checked=!!o[el.id]; else el.value=o[el.id];
+      });
+    }catch(e){}
+  }
+  load();  // restaure la saisie précédente au chargement
+
+  // ===== En-tête personnalisable (cabinet / dentiste / spécialité), partagé avec le plan =====
+  var ENTETE_KEY="adia-entete-v1";
+  function getEntete(){ var d={cabinet:"La Clé du Sourire", dentiste:"Dr Jacques BITTON", specialite:"", adresse:"", telephone:"", email:"", logo:"", logoW:0, logoH:0}; try{ var v=JSON.parse(localStorage.getItem(ENTETE_KEY)); if(v&&(v.cabinet||v.dentiste||v.specialite||v.adresse||v.telephone||v.email||v.logo)) return {cabinet:v.cabinet||"",dentiste:v.dentiste||"",specialite:v.specialite||"",adresse:v.adresse||"",telephone:v.telephone||"",email:v.email||"",logo:v.logo||"",logoW:v.logoW||0,logoH:v.logoH||0}; }catch(e){} return d; }
+  function saveEntete(v){ try{ localStorage.setItem(ENTETE_KEY, JSON.stringify(v)); }catch(e){} }
+  function renderEntete(){
+    var e=getEntete(), el=document.getElementById("entete"); if(!el) return;
+    el.textContent="";
+    if(e.logo){ var img=document.createElement("img"); img.src=e.logo; img.alt="logo"; img.style.cssText="max-height:56px;max-width:200px;display:block;margin:0 0 6px;background:#fff;border-radius:6px;padding:3px"; el.appendChild(img); }
+    var d1=document.createElement("div"); d1.style.cssText="font-weight:800;font-size:19px;color:#fff;letter-spacing:.01em"; d1.textContent=e.dentiste||"";
+    var d2=document.createElement("div"); d2.style.cssText="font-size:13px;color:#cfe2f6;font-weight:600"; d2.textContent=(e.cabinet||"")+(e.specialite?(" · "+e.specialite):"");
+    if(d1.textContent) el.appendChild(d1); if(d2.textContent.trim()) el.appendChild(d2);
+    var coord=[]; if(e.adresse) coord.push(e.adresse);
+    var te=[]; if(e.telephone) te.push("Tél. "+e.telephone); if(e.email) te.push(e.email);
+    if(te.length) coord.push(te.join("  ·  "));
+    coord.forEach(function(line){ var d=document.createElement("div"); d.style.cssText="font-size:12px;color:#bcd4ef"; d.textContent=line; el.appendChild(d); });
+    var a=document.createElement("a"); a.href="#"; a.style.cssText="font-size:12px;color:#cfe2f6;text-decoration:underline;display:inline-block;margin-top:4px"; a.textContent="⚙ Modifier l'en-tête";
+    a.onclick=function(ev){ ev.preventDefault(); editEntete(); };
+    el.appendChild(a);
+  }
+  function editEntete(){
+    var e=getEntete();
+    var pend={logo:e.logo||"", logoW:e.logoW||0, logoH:e.logoH||0};
+    var ov=document.createElement("div");
+    ov.style.cssText="position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;padding:12px;overflow:auto";
+    var inp="width:100%;padding:9px;margin:2px 0 8px;border:1px solid #ccc;border-radius:8px";
+    var lab="font-size:12px;color:#555";
+    ov.innerHTML="<form style='background:#fff;padding:20px;border-radius:12px;min-width:300px;max-width:380px;max-height:92vh;overflow:auto;font-family:sans-serif'>"
+      +"<h3 style='margin:0 0 10px;color:#173a63'>En-tête du cabinet</h3>"
+      +"<label style='"+lab+"'>Nom du dentiste</label><input id='enD' style='"+inp+"'>"
+      +"<label style='"+lab+"'>Nom du cabinet</label><input id='enC' style='"+inp+"'>"
+      +"<label style='"+lab+"'>Spécialité</label><input id='enS' placeholder='ex : Chirurgie implantaire' style='"+inp+"'>"
+      +"<label style='"+lab+"'>Adresse</label><input id='enA' placeholder='12 rue… 75000 Ville' style='"+inp+"'>"
+      +"<label style='"+lab+"'>Téléphone</label><input id='enT' placeholder='01 23 45 67 89' style='"+inp+"'>"
+      +"<label style='"+lab+"'>Email</label><input id='enM' placeholder='cabinet@exemple.fr' style='"+inp+"'>"
+      +"<label style='"+lab+"'>Logo</label><div style='display:flex;align-items:center;gap:10px;margin:2px 0 12px'><img id='enLp' style='max-height:46px;max-width:120px;border:1px solid #eee;border-radius:6px;display:none'><input id='enL' type='file' accept='image/*' style='flex:1;font-size:12px'><button type='button' id='enLrm' style='padding:6px 8px;border:1px solid #ccc;border-radius:6px;background:#f4f6f9;cursor:pointer;font-size:12px'>retirer</button></div>"
+      +"<div style='display:flex;gap:8px'><button type='submit' style='flex:1;padding:10px;border:none;border-radius:8px;background:#173a63;color:#fff;font-weight:600;cursor:pointer'>Enregistrer</button>"
+      +"<button type='button' id='enX' style='padding:10px;border:1px solid #ccc;border-radius:8px;background:#f4f6f9;cursor:pointer'>Annuler</button></div></form>";
+    document.body.appendChild(ov);
+    var q=function(id){ return ov.querySelector(id); };
+    q("#enD").value=e.dentiste||""; q("#enC").value=e.cabinet||""; q("#enS").value=e.specialite||"";
+    q("#enA").value=e.adresse||""; q("#enT").value=e.telephone||""; q("#enM").value=e.email||"";
+    var prev=q("#enLp"); if(pend.logo){ prev.src=pend.logo; prev.style.display=""; }
+    q("#enL").onchange=function(){ var f=this.files&&this.files[0]; if(!f) return;
+      var rd=new FileReader(); rd.onload=function(){ var im=new Image(); im.onload=function(){
+        var max=400, sc=Math.min(1, max/Math.max(im.width,im.height)); var w=Math.max(1,Math.round(im.width*sc)), h=Math.max(1,Math.round(im.height*sc));
+        var cv=document.createElement("canvas"); cv.width=w; cv.height=h; var cx=cv.getContext("2d"); cx.fillStyle="#fff"; cx.fillRect(0,0,w,h); cx.drawImage(im,0,0,w,h);
+        pend.logo=cv.toDataURL("image/jpeg",0.85); pend.logoW=w; pend.logoH=h; prev.src=pend.logo; prev.style.display="";
+      }; im.src=rd.result; }; rd.readAsDataURL(f);
+    };
+    q("#enLrm").onclick=function(){ pend.logo=""; pend.logoW=0; pend.logoH=0; prev.style.display="none"; q("#enL").value=""; };
+    q("#enX").onclick=function(){ ov.remove(); };
+    q("form").onsubmit=function(ev){ ev.preventDefault();
+      saveEntete({dentiste:q("#enD").value.trim(), cabinet:q("#enC").value.trim(), specialite:q("#enS").value.trim(),
+        adresse:q("#enA").value.trim(), telephone:q("#enT").value.trim(), email:q("#enM").value.trim(),
+        logo:pend.logo, logoW:pend.logoW, logoH:pend.logoH});
+      ov.remove(); renderEntete();
+    };
+  }
+  // Pré-configuration de l'en-tête par l'adresse (lien prêt pour un confrère) :
+  // .../fiche-intervention.html?dentiste=Dr%20X&cabinet=...&specialite=...&adresse=...&telephone=...&email=...
+  (function(){
+    try{
+      var q=new URLSearchParams(location.search);
+      var keys=["dentiste","cabinet","specialite","adresse","telephone","email"];
+      if(keys.some(function(k){return q.has(k);})){
+        var e=getEntete();
+        keys.forEach(function(k){ if(q.has(k)) e[k]=q.get(k); });
+        saveEntete(e);
+      }
+      var lg=q.get("logo");
+      if(lg && !/^[a-z]+:|^\/\//i.test(lg) && lg.indexOf("..")<0){
+        fetch(lg).then(function(r){ return r.ok?r.blob():null; }).then(function(blob){
+          if(!blob) return; var img=new Image();
+          img.onload=function(){ var max=420, sc=Math.min(1,max/Math.max(img.width,img.height));
+            var w=Math.max(1,Math.round(img.width*sc)), h=Math.max(1,Math.round(img.height*sc));
+            var cv=document.createElement("canvas"); cv.width=w; cv.height=h; var cx=cv.getContext("2d"); cx.fillStyle="#fff"; cx.fillRect(0,0,w,h); cx.drawImage(img,0,0,w,h);
+            var e2=getEntete(); e2.logo=cv.toDataURL("image/jpeg",0.85); e2.logoW=w; e2.logoH=h; saveEntete(e2); renderEntete(); };
+          var fr=new FileReader(); fr.onload=function(){ img.src=fr.result; }; fr.readAsDataURL(blob);
+        }).catch(function(){});
+      }
+    }catch(_){}
+  })();
+  renderEntete();
+
+  // --- Pré-remplissage depuis la passerelle ADIA -----------------------
+  // La passerelle injecte window.__ADIA_PATIENT__ = {patient_label,
+  // patient_folder_id} dans cette fiche (fichier « Plan de traitement*.html »
+  // du dossier patient). On remplit NOM / PRÉNOM / N° DOSSIER. Si la passerelle
+  // annonce un patient DIFFÉRENT de celui restauré, il prend la main (évite de
+  // rester bloqué sur le patient précédent) ; sinon on ne touche à rien.
+  function splitPatientLabelAdia(label){
+    var toks=String(label||"").trim().split(/\s+/).filter(Boolean);
+    if(!toks.length) return {nom:"",prenom:""};
+    // Convention des logiciels dentaires : le NOM est en MAJUSCULES, le prénom
+    // en casse normale. On repère le(s) token(s) tout-majuscules comme nom,
+    // OÙ QU'ILS SOIENT (« Agnes HEUILLARD » comme « HEUILLARD Agnes »).
+    function isUpper(t){ return /[A-ZÀ-Ý]/.test(t) && t===t.toUpperCase() && t!==t.toLowerCase(); }
+    var nom=[], prenom=[];
+    toks.forEach(function(t){ (isUpper(t)?nom:prenom).push(t); });
+    if(!nom.length){ nom=[toks[0]]; prenom=toks.slice(1); }        // aucun tout-majuscules : 1er = nom
+    if(!prenom.length && nom.length>1){ prenom=[nom.pop()]; }       // « DUPONT JEAN » -> nom DUPONT, prénom JEAN
+    return {nom:nom.join(" "), prenom:prenom.join(" ")};
+  }
+  function applyAdiaPatient(){
+    try{
+      var p=window.__ADIA_PATIENT__;
+      if(!p || (!p.patient_folder_id && !p.patient_label)) return;
+      var elNom=document.getElementById("nom"), elPre=document.getElementById("prenom"), elDos=document.getElementById("dossier");
+      var folder=String(p.patient_folder_id||"").trim();
+      var current=(elDos&&elDos.value||"").trim();
+      var vide=!(elNom&&elNom.value.trim()) && !(elPre&&elPre.value.trim()) && !current;
+      var nouveau=folder && folder!==current;   // patient différent de celui restauré
+      if(!(vide || nouveau)) return;             // même patient / saisie en cours : on laisse
+      var np=splitPatientLabelAdia(p.patient_label);
+      if(elNom) elNom.value=np.nom;
+      if(elPre) elPre.value=np.prenom;
+      if(elDos && folder) elDos.value=folder;
+      if(typeof save==="function") save();
+    }catch(e){}
+  }
+  applyAdiaPatient();
+
+  // --- Bouton « Importer le patient (ADIA) » : lit la passerelle locale ------
+  // Interroge le lien local 127.0.0.1:8765 (comme ADIA Clinic) et remplit
+  // NOM / PRÉNOM / N° DOSSIER avec le patient synchronisé. Marche que la fiche
+  // soit ouverte en PWA ou en fichier.
+  // ===== Lecture du patient : patient déchiffré, sinon capture d'écran lue par l'IA (comme ADIA Clinic) =====
+  var ADIA_SB_URL="https://gcnammzonyrhxhrmklrn.supabase.co";
+  var ADIA_SB_KEY="sb_publishable_CHEfcDwVJfTMFTcnDLbGwQ_g99uoWim";
+  function adiaCapturePrompt(){
+    return [
+      "Tu aides un cabinet dentaire à recopier les informations administratives visibles sur une capture d'écran de fiche patient.",
+      "Analyse uniquement l'image fournie.",
+      "Lis la fiche patient actuellement affichée (zone état civil). Ignore les listes d'autres patients, l'agenda ou les menus.",
+      "PRÉALABLE OBLIGATOIRE : décide d'abord si une FICHE PATIENT est réellement affichée (identité administrative d'une personne précise). Si l'écran montre un agenda, un planning, une page d'accueil, une liste de rendez-vous ou tout écran sans fiche patient : retourne TOUS les champs vides, confidence 'faible', warnings ['Aucune fiche patient à l'écran'].",
+      "INTERDIT : patient_label ne doit JAMAIS être un mot d'interface (Agenda, Planning, Accueil, Rendez-vous, Bibliothèque, Patient, Fiche...), ni un jour, un mois ou une année.",
+      "INTERDIT : patient_folder_id ne doit JAMAIS être une année (ex. 2025, 2026), une date ou une heure.",
+      "confidence 'haute' UNIQUEMENT si le nom ET le numéro de fiche sont lus ensemble sur une même fiche patient identifiable.",
+      "Ne déduis rien. Si une information n'est pas lisible avec certitude, laisse le champ vide.",
+      "Retourne uniquement un objet JSON valide, sans markdown, sans commentaire.",
+      "Schéma exact :",
+      "{\"patient_label\":\"\",\"patient_folder_id\":\"\",\"patient_email\":\"\",\"patient_phone\":\"\",\"source_software\":\"julie|logos|autre|inconnu\",\"confidence\":\"haute|moyenne|faible\",\"warnings\":[]}",
+      "Règles :",
+      "- patient_label : nom et prénom ou identifiant patient affiché.",
+      "- patient_folder_id : numéro de fiche, numéro dossier ou identifiant logiciel.",
+      "- source_software : 'julie' si l'écran ressemble au logiciel Julie, 'logos' pour Logosw, sinon 'autre' ou 'inconnu'."
+    ].join("\n");
+  }
+  function adiaExtractJson(text){
+    var raw=String(text||"").trim(); if(!raw) return {};
+    try{ return JSON.parse(raw); }catch(e){}
+    var s=raw.indexOf("{"), e=raw.lastIndexOf("}");
+    if(s>=0 && e>s){ try{ return JSON.parse(raw.slice(s,e+1)); }catch(_){} }
+    return {};
+  }
+  function adiaNormAdmin(d){
+    d=d||{};
+    return { patient_label:String(d.patient_label||"").trim(), patient_folder_id:String(d.patient_folder_id||"").trim(),
+      source_software:String(d.source_software||"inconnu").trim()||"inconnu", confidence:String(d.confidence||"faible").trim()||"faible" };
+  }
+  function adiaSanitizeCapture(out){
+    function strip(s){ return String(s||"").normalize("NFD").replace(/[̀-ͯ]/g,"").trim().toLowerCase(); }
+    var STOP={};["agenda","planning","accueil","rendez-vous","rendez vous","rdv","bibliotheque","patient","patients",
+      "fiche","dossier","erreur","journee","semaine","mois","recherche","menu","lundi","mardi","mercredi","jeudi",
+      "vendredi","samedi","dimanche","janvier","fevrier","mars","avril","mai","juin","juillet","aout","septembre",
+      "octobre","novembre","decembre","fermeture","ouverture","caisse","reglement","reglements","comptabilite",
+      "facturation","facture","devis","traitement","traitements","parametres","configuration","aujourdhui",
+      "impression","imprimer","apercu","radios","actes","cotation","secu","carte","cps","liste","historique",
+      "relance","relances","echeancier","stock","laboratoire"].forEach(function(w){ STOP[w]=1; });
+    var lk=strip(out.patient_label);
+    var labelBad=!!lk && (STOP[lk]===1 || /^(19|20)\d{2}$/.test(lk));
+    var folderBad=!!out.patient_folder_id && /^(19|20)\d{2}$/.test(out.patient_folder_id.trim());
+    if(labelBad) out.patient_label="";
+    if(folderBad) out.patient_folder_id="";
+    if(labelBad||folderBad) out.confidence="faible";
+    return out;
+  }
+  function adiaBlobToDataUrl(blob){ return new Promise(function(res,rej){ var fr=new FileReader(); fr.onload=function(){res(fr.result);}; fr.onerror=rej; fr.readAsDataURL(blob); }); }
+  async function adiaReadCapture(base){
+    try{
+      var resp=await fetch(base+"/patient-admin/capture",{cache:"no-store"});
+      if(!resp.ok) return null;
+      var blob=await resp.blob();
+      if(!blob || !/^image\//.test(blob.type||"") || blob.size>8000000) return null;
+      var imageDataUrl=await adiaBlobToDataUrl(blob);
+      var r=await fetch(ADIA_SB_URL+"/functions/v1/generate-document",{method:"POST",
+        headers:{"Content-Type":"application/json","apikey":ADIA_SB_KEY,"Authorization":"Bearer "+ADIA_SB_KEY},
+        body:JSON.stringify({prompt:adiaCapturePrompt(),imageDataUrl:imageDataUrl,task:"patient_admin_capture",consultationId:null})});
+      if(!r.ok) return null;
+      var d=await r.json();
+      return adiaSanitizeCapture(adiaNormAdmin(adiaExtractJson((d && (d.output_text||d.text))||"")));
+    }catch(e){ return null; }
+  }
+  function adiaApplyPatient(label, folder){
+    var np=splitPatientLabelAdia(label||"");
+    var elNom=document.getElementById("nom"), elPre=document.getElementById("prenom"), elDos=document.getElementById("dossier");
+    if(elNom) elNom.value=np.nom;
+    if(elPre) elPre.value=np.prenom;
+    if(elDos && folder) elDos.value=folder;
+    if(typeof save==="function") save();
+    window.__adiaIdentImportee=true;
+    if(elDos) elDos.dispatchEvent(new Event("change",{bubbles:true}));
+    return (np.nom+" "+np.prenom).trim();
+  }
+  async function importPatientFromAdia(){
+    var msg=document.getElementById("importAdiaMsg");
+    function say(t){ if(msg) msg.textContent=t; }
+    say("Lecture de la passerelle…");
+    var bases=["http://127.0.0.1:8765","http://localhost:8765"];
+    for(var i=0;i<bases.length;i++){
+      try{
+        var r=await fetch(bases[i]+"/patient-admin/latest",{cache:"no-store"});
+        if(!r.ok) continue;
+        var d=await r.json();
+        var folder=(d && d.patient_folder_id || "").toString().trim();
+        var label=(d && d.patient_label || "").toString().trim();
+        if(folder || label){ var nm=adiaApplyPatient(label,folder); say("Patient importé : "+nm+(folder?(" / "+folder):"")); return; }
+        var cv=Number(d && d.captureVersion || 0);
+        if(cv>0 && window.adiaModeCabinet && window.adiaModeCabinet()){
+          say("Mode cabinet : la lecture d’écran par IA est désactivée (elle enverrait la capture hors du cabinet). Ouvrez la fiche du patient dans le logiciel, synchronisez avec Ctrl+Alt+A, ou saisissez le nom et le n° à la main.");
+          return;
+        }
+        if(cv>0){
+          say("Lecture de l'écran capturé par l'IA…");
+          var p=await adiaReadCapture(bases[i]);
+          if(p && (p.patient_folder_id || p.patient_label)){
+            var nm2=adiaApplyPatient(p.patient_label, p.patient_folder_id);
+            say("Patient lu : "+(nm2||p.patient_label||"")+(p.patient_folder_id?(" / "+p.patient_folder_id):"")+(p.confidence==="faible"?" — à vérifier":""));
+          } else {
+            say("Écran capturé, mais aucune fiche patient claire (nom + n°). Ouvrez la FICHE du patient dans le logiciel, faites Ctrl+Alt+A, puis réessayez.");
+          }
+          return;
+        }
+        say("La passerelle répond, mais aucun patient synchronisé. Ouvrez la fiche du patient, faites Ctrl+Alt+A, puis recliquez ici.");
+        return;
+      }catch(e){ /* essayer l'URL suivante */ }
+    }
+    say("Passerelle non trouvée. Lancez « ADIA - Passerelle logiciel » et vérifiez « Activer lien local ADIA ».");
+  }
+  (function(){ var b=document.getElementById("importAdia"); if(b) b.addEventListener("click", importPatientFromAdia); })();
+  (function(){ var b=document.getElementById("reprendrePlan"); if(!b) return;
+    b.addEventListener("click", function(){
+      var msg=document.getElementById("importAdiaMsg"), p=null;
+      try{ p=(JSON.parse(localStorage.getItem("omni_plan_current")||"null")||{}).p; }catch(e){}
+      if(!p || !(p.nom||p.dossier)){ if(msg) msg.textContent="Le plan de traitement ne contient pas encore de patient."; return; }
+      var nm=adiaApplyPatient(p.nom||"", p.dossier||"");
+      if(msg) msg.textContent="Patient repris du plan : "+nm+(p.dossier?" / "+p.dossier:"");
+    });
+  })();
+
+
+
+  // --- Éléments personnalisés (hors liste) ---
+  var CSTORE="omni-fiche-customs-v1";
+  var customs=[];
+  try{ customs=JSON.parse(localStorage.getItem(CSTORE)||"[]"); }catch(e){ customs=[]; }
+  function saveCustoms(){ try{ localStorage.setItem(CSTORE, JSON.stringify(customs)); }catch(e){} }
+  function renderCustoms(){
+    var box=document.getElementById("customList"); box.innerHTML="";
+    customs.forEach(function(it,idx){
+      var lab=document.createElement("label"); lab.className="chk";
+      var cb=document.createElement("input"); cb.type="checkbox"; cb.checked=it.checked!==false;
+      cb.addEventListener("change", function(){ customs[idx].checked=cb.checked; saveCustoms(); });
+      var span=document.createElement("span"); span.textContent=" "+it.label+" ";
+      var del=document.createElement("button"); del.type="button"; del.className="del";
+      del.textContent="✕"; del.title="Retirer";
+      del.addEventListener("click", function(ev){ ev.preventDefault();
+        customs.splice(idx,1); saveCustoms(); renderCustoms(); });
+      lab.appendChild(cb); lab.appendChild(span); lab.appendChild(del);
+      box.appendChild(lab);
+    });
+  }
+  function addCustom(label){
+    label=(label||"").replace(/[.,;:!?]+$/,"").trim();
+    if(!label) return;
+    customs.push({label:label, checked:true}); saveCustoms(); renderCustoms();
+    var box=document.getElementById("customList");
+    if(box.lastChild) flash(box.lastChild.querySelector("input"));
+  }
+  renderCustoms();
+
+  // ===== Matériel MODIFIABLE : source unique (écran + dictée + Word + PDF) =====
+  var FIXED_CHECKS = [
+    {id:"avul_oui", label:"Avulsion : oui", keys:["avulsion oui","implantation immediate oui"]},
+    {id:"avul_non", label:"Avulsion : non", keys:["avulsion non","implantation immediate non","pas d avulsion"]}
+  ];
+  var MSTORE = "omni-materiel-v1";
+  var MAT_DEFAULT = [
+    {title:"Anesthésie", items:[
+      {id:"an_art100",label:"Articaïne 1/100 000"},
+      {id:"an_art200",label:"Articaïne 1/200 000"},
+      {id:"an_sansvaso",label:"Sans vasoconstricteur"},
+      {id:"an_tronc",label:"Tronculaire"},
+      {id:"an_intralig",label:"Intraligamentaire"},
+      {id:"an_contact",label:"Anesthésie de contact"}
+    ]},
+    {title:"Chirurgie", disc:"Chirurgie", items:[
+      {id:"ch_daviers",label:"Daviers"},
+      {id:"ch_elev",label:"Syndesmotomes / élévateurs"},
+      {id:"ch_lame",label:"Lame 15"},
+      {id:"ch_decol",label:"Décolleur"},
+      {id:"ch_fraise",label:"Fraise chirurgicale"},
+      {id:"ch_curette",label:"Curette alvéolaire"},
+      {id:"ch_hemo",label:"Éponge hémostatique"},
+      {id:"ch_suture",label:"Fil de suture"}
+    ]},
+    {title:"Endodontie", disc:"Endodontie", items:[
+      {id:"en_digue",label:"Digue"},
+      {id:"en_apex",label:"Localisateur d'apex"},
+      {id:"en_limes",label:"Limes manuelles"},
+      {id:"en_niti",label:"Instruments rotatifs NiTi"},
+      {id:"en_hypo",label:"Hypochlorite"},
+      {id:"en_edta",label:"EDTA"},
+      {id:"en_gutta",label:"Cônes de gutta"},
+      {id:"en_ciment",label:"Ciment canalaire"},
+      {id:"en_caoh",label:"Hydroxyde de calcium"},
+      {id:"en_prov",label:"Obturation provisoire"}
+    ]},
+    {title:"Restauration", disc:"Soins conservateurs", items:[
+      {id:"re_digue",label:"Digue"},
+      {id:"re_matrice",label:"Matrice + coin"},
+      {id:"re_mord",label:"Mordançage"},
+      {id:"re_adhesif",label:"Adhésif"},
+      {id:"re_compo",label:"Composite"},
+      {id:"re_fluide",label:"Composite fluide"},
+      {id:"re_cvi",label:"CVI"},
+      {id:"re_polissage",label:"Kit de polissage"}
+    ]},
+    {title:"Prothèse", disc:"Prothèse", items:[
+      {id:"pr_pe",label:"Porte-empreinte"},
+      {id:"pr_alginate",label:"Alginate"},
+      {id:"pr_silicone",label:"Silicone"},
+      {id:"pr_optique",label:"Empreinte optique"},
+      {id:"pr_fil",label:"Fil rétracteur"},
+      {id:"pr_occlu",label:"Cire d'occlusion"},
+      {id:"pr_teintier",label:"Teintier"},
+      {id:"pr_resine",label:"Résine provisoire"},
+      {id:"pr_cimprov",label:"Ciment provisoire"},
+      {id:"pr_scell",label:"Ciment de scellement"},
+      {id:"pr_colle",label:"Colle"}
+    ]},
+    {title:"Parodontie", disc:"Parodontie", items:[
+      {id:"pa_sonde",label:"Sonde parodontale"},
+      {id:"pa_us",label:"Ultrasons"},
+      {id:"pa_curettes",label:"Curettes de Gracey"},
+      {id:"pa_aero",label:"Aéropolisseur"},
+      {id:"pa_chx",label:"Chlorhexidine"}
+    ]},
+    {title:"Implantologie", disc:"Implantologie", items:[
+      {id:"im_trousse",label:"Trousse implantaire"},
+      {id:"im_moteur",label:"Moteur d'implantologie"},
+      {id:"im_guide",label:"Guide chirurgical"},
+      {id:"im_comblement",label:"Comblement osseux"},
+      {id:"im_membrane",label:"Membrane"},
+      {id:"im_cicat",label:"Pilier de cicatrisation"}
+    ]}
+  ];
+
+  // ===== Actes prévus (omnipratique) : une ligne par acte =====
+  var ASTORE="omni-fiche-actes-v1";
+  var DISCIPLINES=[
+    {nom:"Chirurgie", actes:["Avulsion simple","Avulsion chirurgicale","Dent de sagesse","Alvéolectomie","Freinectomie","Régularisation de crête","Énucléation kystique","Biopsie"]},
+    {nom:"Endodontie", actes:["Pulpotomie","Traitement canalaire","Retraitement canalaire","Médication intracanalaire","Chirurgie apicale"]},
+    {nom:"Soins conservateurs", actes:["Composite 1 face","Composite 2 faces","Composite 3 faces","Inlay-onlay : préparation","Inlay-onlay : collage","Coiffage pulpaire","Scellement de sillons"]},
+    {nom:"Prothèse", actes:["Inlay-core","Couronne : préparation et empreinte","Couronne : pose","Couronne provisoire","Bridge : préparation et empreinte","Bridge : pose","Facette","Prothèse amovible partielle","Prothèse amovible complète","Réparation / rebasage"]},
+    {nom:"Parodontie", actes:["Détartrage","Surfaçage radiculaire","Lambeau d'assainissement","Gingivectomie","Élongation coronaire","Greffe gingivale","Contention","Maintenance parodontale"]}
+  ];
+  var actes=[];
+  try{ actes=JSON.parse(localStorage.getItem(ASTORE)||"[]")||[]; }catch(e){ actes=[]; }
+  if(!Array.isArray(actes)) actes=[];
+  function saveActes(){ try{ localStorage.setItem(ASTORE, JSON.stringify(actes)); }catch(e){} }
+  // Le matériel affiché suit les actes prévus : un groupe lié à une discipline
+  // n'apparaît que si un acte de cette discipline (ou un implant) est saisi.
+  function discActives(){
+    var o={}; actes.forEach(function(a){ if(a.disc) o[a.disc]=1; });
+    if(typeof implants!=="undefined" && implants && implants.length) o["Implantologie"]=1;
+    return o;
+  }
+  function groupeVisible(g){ return !g.disc || !!discActives()[g.disc]; }
+  // Le PRF ne concerne que la chirurgie : la rubrique reste masquée sinon.
+  function majPrf(){
+    var l=document.getElementById("prfList"), sec=l&&l.closest("section"); if(!sec) return;
+    var d=discActives(); sec.style.display=(d["Chirurgie"]||d["Implantologie"])?"":"none";
+  }
+  var matModel;
+  try{ matModel = JSON.parse(localStorage.getItem(MSTORE)); }catch(e){}
+  if(!Array.isArray(matModel) || !matModel.length) matModel = JSON.parse(JSON.stringify(MAT_DEFAULT));
+  function saveMat(){ try{ localStorage.setItem(MSTORE, JSON.stringify(matModel)); }catch(e){} }
+  var matEdit=false, _matCtr=0;
+  function newMatId(){ _matCtr++; return "matx_"+Date.now().toString(36)+"_"+_matCtr; }
+  function normKey(s){ return (s||"").normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim(); }
+
+  function rebuildChecks(){
+    var arr = FIXED_CHECKS.slice();
+    matModel.forEach(function(g){ g.items.forEach(function(it){
+      var keys = (it.keys && it.keys.length) ? it.keys.slice() : [];
+      var nk = normKey(it.label); if(nk && keys.indexOf(nk)<0) keys.push(nk);
+      arr.push({id:it.id, label:it.label, keys:keys});
+    }); });
+    CHECKS = arr;
+  }
+
+  function renderMat(){
+    majPrf();
+    var host=document.getElementById("matGroups"); if(!host) return;
+    var cur={}; host.querySelectorAll("input[type=checkbox]").forEach(function(cb){ cur[cb.id]=cb.checked; });
+    var saved={}; try{ saved=JSON.parse(localStorage.getItem(STORE)||"{}"); }catch(e){}
+    host.innerHTML="";
+    matModel.forEach(function(g,gi){
+      if(!matEdit && !groupeVisible(g)) return;
+      var box=document.createElement("div"); box.className="sub";
+      var cat=document.createElement("span"); cat.className="cat"; cat.textContent=g.title||"";
+      if(matEdit){ cat.style.cursor="text"; cat.title="Double-clic pour renommer le groupe";
+        cat.addEventListener("dblclick", function(){ var v=prompt("Renommer le groupe :", g.title||""); if(v!=null){ g.title=v.trim(); saveMat(); renderMat(); } }); }
+      box.appendChild(cat);
+      g.items.forEach(function(it,ii){
+        var lab=document.createElement("label"); lab.className="chk";
+        var cb=document.createElement("input"); cb.type="checkbox"; cb.id=it.id;
+        cb.checked = (it.id in cur) ? cur[it.id] : !!saved[it.id];
+        cb.addEventListener("change", save);
+        lab.appendChild(cb); lab.appendChild(document.createTextNode(" "+it.label));
+        if(matEdit){
+          lab.title="Double-clic pour renommer";
+          lab.addEventListener("dblclick", function(e){ if(e.target===cb) return; var v=prompt("Renommer :", it.label); if(v!=null && v.trim()){ it.label=v.trim(); saveMat(); renderMat(); rebuildChecks(); } });
+          var del=document.createElement("span"); del.textContent=" ✕"; del.style.cssText="color:#b0243a;cursor:pointer;font-weight:700;margin-left:4px";
+          del.title="Supprimer cet élément";
+          del.addEventListener("click", function(e){ e.preventDefault(); e.stopPropagation(); g.items.splice(ii,1); saveMat(); renderMat(); rebuildChecks(); });
+          lab.appendChild(del);
+        }
+        box.appendChild(lab);
+      });
+      if(matEdit){
+        var add=document.createElement("button"); add.type="button"; add.className="addbtn"; add.textContent="＋ élément"; add.style.marginLeft="6px";
+        add.addEventListener("click", function(){ var v=prompt("Nouvel élément :"); if(v && v.trim()){ g.items.push({id:newMatId(),label:v.trim(),keys:[]}); saveMat(); renderMat(); rebuildChecks(); } });
+        box.appendChild(add);
+        var dg=document.createElement("button"); dg.type="button"; dg.className="addbtn alt"; dg.textContent="✕ groupe"; dg.style.marginLeft="6px";
+        dg.addEventListener("click", function(){ if(confirm("Supprimer le groupe « "+(g.title||"")+" » et ses éléments ?")){ matModel.splice(gi,1); saveMat(); renderMat(); rebuildChecks(); } });
+        box.appendChild(dg);
+      }
+      host.appendChild(box);
+    });
+    if(matEdit){
+      var wrap=document.createElement("div"); wrap.className="row addrow"; wrap.style.marginTop="8px";
+      var ag=document.createElement("button"); ag.type="button"; ag.className="addbtn"; ag.textContent="＋ groupe";
+      ag.addEventListener("click", function(){ var v=prompt("Nom du nouveau groupe :"); if(v!=null){ matModel.push({title:v.trim(),items:[]}); saveMat(); renderMat(); }});
+      var rs=document.createElement("button"); rs.type="button"; rs.className="addbtn alt"; rs.textContent="↺ Liste d'origine";
+      rs.addEventListener("click", function(){ if(confirm("Revenir à la liste d'origine ? Vos ajouts seront perdus.")){ matModel=JSON.parse(JSON.stringify(MAT_DEFAULT)); saveMat(); renderMat(); rebuildChecks(); }});
+      wrap.appendChild(ag); wrap.appendChild(rs); host.appendChild(wrap);
+    }
+  }
+  function matWordHtml(){
+    function box(ck,label){ var L=String(label).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/ /g,"&nbsp;"); return "<span style='white-space:nowrap'><span style='font-size:14pt"+(ck?";color:#d40000;font-weight:bold":"")+"'>"+(ck?"&#9746;":"&#9744;")+"</span>&nbsp;"+(ck?"<b style='color:#d40000'>"+L+"</b>":L)+"</span>"; }
+    return matModel.map(function(g){
+      var el=document.createElement("div"); // pour lire l'état coché courant par id
+      var items=g.items.map(function(it){ var cb=document.getElementById(it.id); return box(cb?cb.checked:false, it.label); }).join(" &nbsp;&nbsp; ");
+      return "<p>"+(g.title?"<b>"+g.title+" :</b> ":"")+items+"</p>";
+    }).join("");
+  }
+  var _matBtn=document.getElementById("matEditBtn");
+  if(_matBtn) _matBtn.addEventListener("click", function(){ matEdit=!matEdit; _matBtn.textContent=matEdit?"✓ Terminer":"✏️ Modifier la liste"; renderMat(); });
+  renderMat();
+  rebuildChecks();
+
+  // --- Vocabulaire personnalisé (noms propres) ---
+  var VSTORE="fiche-vocab-v1";
+  var vocab=[];
+  try{ vocab=JSON.parse(localStorage.getItem(VSTORE)||"[]"); }catch(e){ vocab=[]; }
+  var vocabTa=document.getElementById("vocabTa"), vocabCount=document.getElementById("vocabCount");
+  function saveVocab(){
+    vocab=vocabTa.value.split(/\n+/).map(function(s){return s.trim();}).filter(Boolean);
+    try{ localStorage.setItem(VSTORE, JSON.stringify(vocab)); }catch(e){}
+    vocabCount.textContent=vocab.length?" ("+vocab.length+")":"";
+  }
+  vocabTa.value=vocab.join("\n");
+  vocabCount.textContent=vocab.length?" ("+vocab.length+")":"";
+  vocabTa.addEventListener("change", saveVocab);
+  document.getElementById("vocabSave").addEventListener("click", function(){
+    saveVocab();
+    document.getElementById("vocabMsg").textContent="✓ "+vocab.length+" entrée(s) enregistrée(s).";
+  });
+  // Remplace les mots dictés par l'orthographe du vocabulaire (tolérance aux fautes)
+  function snapToVocab(val){
+    if(!vocab.length || !val) return val;
+    var toks=val.split(/\s+/), ntoks=toks.map(function(w){return norm(w);}), out=[];
+    for(var i=0;i<toks.length;i++){
+      var best=null, blen=0;
+      for(var k=0;k<vocab.length;k++){
+        var pt=norm(vocab[k]).split(" ");
+        if(pt.length>ntoks.length-i) continue;
+        var ok=true;
+        for(var j=0;j<pt.length;j++){ if(!simWord(ntoks[i+j],pt[j])){ ok=false; break; } }
+        if(ok && pt.length>=blen){ best=vocab[k]; blen=pt.length; }
+      }
+      if(best){ out.push(best); i+=blen-1; } else out.push(toks[i]);
+    }
+    return out.join(" ");
+  }
+
+  // --- Implants (liste : une ligne par implant, système + dent + Ø×L) ---
+  var ISTORE="omni-fiche-implants-v1";
+  var implants=[];
+  try{ implants=JSON.parse(localStorage.getItem(ISTORE)||"[]"); }catch(e){ implants=[]; }
+  function saveImplants(){ try{ localStorage.setItem(ISTORE, JSON.stringify(implants)); }catch(e){} }
+  var SYSKEY="omni-systemes-v1";
+  function saveSystemes(){ try{ localStorage.setItem(SYSKEY, JSON.stringify(SYSTEMES)); }catch(e){} }
+  var SYSTEMES=(function(){
+    // Liste librement modifiable : on ne réinjecte JAMAIS un système retiré.
+    try{ var a=JSON.parse(localStorage.getItem(SYSKEY)); if(Array.isArray(a)) return a; }catch(e){}
+    return ["NobelActive","NobelParallel","NA","TBR","Autre"];
+  })();
+  function renderImplants(){
+    var box=document.getElementById("implantList"); box.innerHTML="";
+    if(!implants.length){
+      var e=document.createElement("div"); e.id="impEmpty";
+      e.textContent="Aucun implant. Touchez « ＋ Active » ou « ＋ Parallel », ou dictez « implant active 16 21 ».";
+      box.appendChild(e); return;
+    }
+    implants.forEach(function(it,idx){
+      var row=document.createElement("div"); row.className="implant-line";
+      var num=document.createElement("span"); num.className="idx"; num.textContent=(idx+1)+".";
+      var sel=document.createElement("select"); sel.className="impsys";
+      var opts=SYSTEMES.slice();
+      if(it.sys && opts.indexOf(it.sys)===-1) opts.unshift(it.sys);   // système retiré de la liste : on ne perd pas la saisie
+      opts.forEach(function(o){
+        var op=document.createElement("option"); op.value=o; op.textContent=o;
+        if(o===it.sys) op.selected=true; sel.appendChild(op);
+      });
+      sel.addEventListener("change", function(){ implants[idx].sys=sel.value; saveImplants(); });
+      var dent=document.createElement("input"); dent.type="text"; dent.className="sm";
+      dent.placeholder="N° dent"; dent.value=it.dent||"";
+      dent.addEventListener("input", function(){ implants[idx].dent=dent.value; saveImplants(); });
+      var spec=document.createElement("input"); spec.type="text";
+      spec.placeholder="Ø × L / réf / lot"; spec.value=it.spec||"";
+      spec.addEventListener("input", function(){ implants[idx].spec=spec.value; saveImplants(); });
+      // Plateforme prothétique (pilote la fiche de liaison). « auto » = déduite du Ø.
+      var plat=document.createElement("select"); plat.className="impsys"; plat.title="Plateforme prothétique";
+      [["auto","Plateforme : auto"],["NP","NP"],["RP","RP"],["WP","WP"],["3.0","Active 3.0"]].forEach(function(o){
+        var op=document.createElement("option"); op.value=o[0]; op.textContent=o[1]; if((it.plat||"auto")===o[0]) op.selected=true; plat.appendChild(op); });
+      plat.addEventListener("change", function(){ implants[idx].plat=plat.value; saveImplants(); });
+      // Multi-unit déjà en place : la liaison bascule sur les composants MUA.
+      var mua=document.createElement("select"); mua.className="impsys"; mua.title="Pilier Multi-unit posé";
+      [["","MUA : non"],["droit","MUA droit"],["angule","MUA angulé"]].forEach(function(o){
+        var op=document.createElement("option"); op.value=o[0]; op.textContent=o[1]; if((it.mua||"")===o[0]) op.selected=true; mua.appendChild(op); });
+      mua.addEventListener("change", function(){ implants[idx].mua=mua.value; saveImplants(); });
+      var del=document.createElement("button"); del.type="button"; del.className="del";
+      del.textContent="✕"; del.title="Retirer";
+      del.addEventListener("click", function(ev){ ev.preventDefault();
+        implants.splice(idx,1); saveImplants(); renderImplants(); });
+      row.appendChild(num); row.appendChild(sel); row.appendChild(dent);
+      row.appendChild(spec); row.appendChild(plat); row.appendChild(mua); row.appendChild(del);
+      box.appendChild(row);
+    });
+  }
+  function addImplant(sys, dent){
+    implants.push({sys:sys||"NobelActive", dent:dent||"", spec:"", plat:"auto", mua:""});
+    saveImplants(); renderImplants();
+    var box=document.getElementById("implantList");
+    if(box.lastChild) flash(box.lastChild.querySelector("input"));
+  }
+  renderImplants();
+  // la barre du haut montre le passeport dès qu'un implant est saisi ; le matériel d'implantologie aussi
+  var _saveImplants0=saveImplants;
+  saveImplants=function(){ _saveImplants0(); majSelonImplants(); };
+  function majSelonImplants(){ try{ if(window.adiaNavPasseport) window.adiaNavPasseport(implants.length>0); }catch(e){} renderMat(); }
+
+  function renderActes(){
+    var box=document.getElementById("acteList"); if(!box) return; box.innerHTML="";
+    if(!actes.length){
+      var e=document.createElement("div"); e.id="acteEmpty"; e.style.cssText="color:#888;font-style:italic;font-size:14px;margin:6px 0";
+      e.textContent="Aucun acte. Touchez une discipline ci-dessous pour ajouter une ligne.";
+      box.appendChild(e); return;
+    }
+    actes.forEach(function(it,idx){
+      var row=document.createElement("div"); row.className="implant-line";
+      var num=document.createElement("span"); num.className="idx"; num.textContent=(idx+1)+".";
+      var sel=document.createElement("select"); sel.className="impsys"; sel.title="Discipline";
+      var noms=DISCIPLINES.map(function(d){ return d.nom; });
+      if(it.disc && noms.indexOf(it.disc)===-1) noms.unshift(it.disc);
+      noms.forEach(function(n){ var op=document.createElement("option"); op.value=n; op.textContent=n; if(n===it.disc) op.selected=true; sel.appendChild(op); });
+      var acte=document.createElement("input"); acte.type="text"; acte.placeholder="Acte"; acte.value=it.acte||"";
+      acte.setAttribute("list","dl_acte_"+noms.indexOf(it.disc)); acte.autocomplete="off"; acte.style.flex="2 1 170px";
+      sel.addEventListener("change", function(){ actes[idx].disc=sel.value; saveActes(); renderActes(); renderMat(); });
+      acte.addEventListener("input", function(){ actes[idx].acte=acte.value; saveActes(); });
+      var dent=document.createElement("input"); dent.type="text"; dent.className="sm"; dent.placeholder="Dent(s)"; dent.value=it.dent||"";
+      dent.addEventListener("input", function(){ actes[idx].dent=dent.value; saveActes(); });
+      var note=document.createElement("input"); note.type="text"; note.placeholder="Précision (faces, teinte, secteur…)"; note.value=it.note||"";
+      note.addEventListener("input", function(){ actes[idx].note=note.value; saveActes(); });
+      var del=document.createElement("button"); del.type="button"; del.className="del"; del.textContent="✕"; del.title="Retirer";
+      del.addEventListener("click", function(ev){ ev.preventDefault(); actes.splice(idx,1); saveActes(); renderActes(); renderMat(); });
+      row.appendChild(num); row.appendChild(sel); row.appendChild(acte); row.appendChild(dent); row.appendChild(note); row.appendChild(del);
+      box.appendChild(row);
+    });
+  }
+  function addActe(disc){
+    actes.push({disc:disc, acte:"", dent:"", note:""}); saveActes(); renderActes(); renderMat();
+    var box=document.getElementById("acteList");
+    if(box.lastChild){ var i=box.lastChild.querySelector("input"); if(i){ flash(i); i.focus(); } }
+  }
+  (function(){
+    var dl=document.getElementById("acteDatalists"), bt=document.getElementById("discBtns");
+    DISCIPLINES.forEach(function(d,i){
+      if(dl){ var l=document.createElement("datalist"); l.id="dl_acte_"+i; d.actes.forEach(function(a){ var o=document.createElement("option"); o.value=a; l.appendChild(o); }); dl.appendChild(l); }
+      if(bt){ var b=document.createElement("button"); b.type="button"; b.className="addbtn"+(i%2?" alt":""); b.textContent="＋ "+d.nom;
+        b.addEventListener("click", function(){ addActe(d.nom); }); bt.appendChild(b); }
+    });
+  })();
+  renderActes();
+  renderMat();
+  // ---- Systèmes d'implant : boutons pilotés par la liste, liste modifiable ----
+  var sysEdit=false;
+  function renderSysButtons(){
+    var box=document.getElementById("sysBtns"); if(!box) return;
+    box.innerHTML="";
+    if(!SYSTEMES.length && !sysEdit){
+      var vide=document.createElement("span"); vide.style.cssText="font-size:14px;color:#888;font-style:italic";
+      vide.textContent="Aucun système — cliquez « Modifier la liste » pour en ajouter.";
+      box.appendChild(vide);
+    }
+    SYSTEMES.forEach(function(sys, i){
+      if(sysEdit){
+        var chip=document.createElement("span"); chip.className="achip";
+        var t=document.createElement("span"); t.textContent=sys;
+        var x=document.createElement("button"); x.type="button"; x.className="ax"; x.textContent="✕"; x.title="Retirer ce système";
+        x.addEventListener("click", function(ev){ ev.preventDefault();
+          if(!confirm("Retirer le système « "+sys+" » de la liste ?")) return;
+          SYSTEMES.splice(i,1); saveSystemes(); renderSysButtons(); renderImplants(); });
+        chip.appendChild(t); chip.appendChild(x); box.appendChild(chip);
+      } else {
+        var b=document.createElement("button"); b.type="button"; b.className="addbtn"+(i%2?" alt":"");
+        b.textContent="＋ "+sys;
+        b.addEventListener("click", function(){ addImplant(sys,""); });
+        box.appendChild(b);
+      }
+    });
+    var tog=document.createElement("button"); tog.type="button"; tog.className="addbtn";
+    tog.style.cssText="background:#f4f6f9;color:#1a3e6f;border:1px solid #cbd2dc";
+    tog.textContent=sysEdit?"✓ Terminer":"✎ Modifier la liste";
+    tog.addEventListener("click", function(){
+      sysEdit=!sysEdit;
+      var row=document.getElementById("sysEditRow"); if(row) row.style.display=sysEdit?"":"none";
+      renderSysButtons();
+    });
+    box.appendChild(tog);
+  }
+  (function(){
+    function addSys(){
+      var inp=document.getElementById("sysNew"); var v=(inp&&inp.value||"").trim();
+      if(!v) return;
+      if(SYSTEMES.indexOf(v)===-1){ SYSTEMES.push(v); saveSystemes(); }
+      inp.value=""; renderSysButtons(); renderImplants();
+    }
+    var a=document.getElementById("sysAdd"); if(a) a.addEventListener("click", addSys);
+    var i=document.getElementById("sysNew");
+    if(i) i.addEventListener("keydown", function(e){ if(e.key==="Enter"){ e.preventDefault(); addSys(); } });
+  })();
+  renderSysButtons();
+  // ---- Alertes médicales : chips cliquables, liste modifiable ----
+  var ALSTORE="omni-alertes-v1";
+  var AL_DEFAULT=[{id:"al_anticoag",label:"Anticoagulant"},{id:"al_biphos",label:"Bisphosphonates"},
+    {id:"al_diabete",label:"Diabète"},{id:"al_tabac",label:"Tabac"},{id:"al_atb",label:"Allergie ATB"},
+    {id:"al_latex",label:"Latex"},{id:"al_cardio",label:"Cardiopathie"},{id:"al_immuno",label:"Immunodépression"}];
+  var alertModel=null;
+  try{ alertModel=JSON.parse(localStorage.getItem(ALSTORE)); }catch(e){}
+  if(!alertModel || !alertModel.length) alertModel=JSON.parse(JSON.stringify(AL_DEFAULT));
+  function saveAlerts(){ try{ localStorage.setItem(ALSTORE, JSON.stringify(alertModel)); }catch(e){} }
+  function renderAlerts(){
+    var box=document.getElementById("alertList"); if(!box) return;
+    var saved={}; try{ saved=JSON.parse(localStorage.getItem(STORE)||"{}"); }catch(e){}
+    alertModel.forEach(function(it){ var c=document.getElementById(it.id); if(c) saved[it.id]=c.checked; });
+    box.innerHTML="";
+    alertModel.forEach(function(it,idx){
+      var chip=document.createElement("label"); chip.className="achip";
+      var cb=document.createElement("input"); cb.type="checkbox"; cb.id=it.id; if(saved[it.id]) cb.checked=true;
+      var txt=document.createElement("span"); txt.textContent=it.label;
+      var del=document.createElement("button"); del.type="button"; del.className="ax"; del.textContent="✕"; del.title="Retirer de la liste";
+      del.addEventListener("click", function(ev){ ev.preventDefault(); ev.stopPropagation();
+        if(!confirm("Retirer l'alerte « "+it.label+" » de la liste ?")) return;
+        alertModel.splice(idx,1); saveAlerts(); renderAlerts(); if(typeof save==="function") save(); });
+      chip.appendChild(cb); chip.appendChild(txt); chip.appendChild(del);
+      box.appendChild(chip);
+    });
+  }
+  (function(){
+    var add=document.getElementById("alertAdd"), inp=document.getElementById("alertNew");
+    function doAdd(){ var v=(inp&&inp.value||"").trim(); if(!v) return;
+      alertModel.push({id:"alx_"+Date.now(), label:v}); saveAlerts(); renderAlerts(); inp.value=""; }
+    if(add) add.addEventListener("click", doAdd);
+    if(inp) inp.addEventListener("keydown", function(e){ if(e.key==="Enter"){ e.preventDefault(); doAdd(); } });
+  })();
+  renderAlerts();
+
+  // ---- 4/ PRF : liste modifiable (comme le Matériel) ----
+  var PRFKEY="omni-prf-v1", prfEdit=false;
+  var prfModel=(function(){ try{ var a=JSON.parse(localStorage.getItem(PRFKEY)); if(a&&a.length) return a; }catch(e){} return [{id:"prf_rouge",label:"tubes rouges"},{id:"prf_blanc",label:"tubes blancs"}]; })();
+  function savePrf(){ try{ localStorage.setItem(PRFKEY, JSON.stringify(prfModel)); }catch(e){} }
+  function renderPrf(){
+    var box=document.getElementById("prfList"); if(!box) return;
+    var saved={}; try{ saved=JSON.parse(localStorage.getItem(STORE)||"{}"); }catch(e){}
+    prfModel.forEach(function(it){ var c=document.getElementById(it.id), q=document.getElementById(it.id+"_n"); if(c) saved[it.id]=c.checked; if(q) saved[it.id+"_n"]=q.value; });
+    box.innerHTML="";
+    prfModel.forEach(function(it,idx){
+      var row=document.createElement("div"); row.className="row";
+      var lab=document.createElement("label"); lab.className="chk";
+      var cb=document.createElement("input"); cb.type="checkbox"; cb.id=it.id; if(saved[it.id]) cb.checked=true;
+      lab.appendChild(cb);
+      var qty=document.createElement("input"); qty.type="text"; qty.className="qty"; qty.id=it.id+"_n"; qty.setAttribute("inputmode","numeric"); qty.placeholder="0"; if(saved[it.id+"_n"]!=null) qty.value=saved[it.id+"_n"];
+      row.appendChild(lab); row.appendChild(qty); row.appendChild(document.createTextNode(" "+it.label));
+      if(prfEdit){
+        var ren=document.createElement("button"); ren.type="button"; ren.className="del"; ren.textContent="✎"; ren.title="Renommer";
+        ren.addEventListener("click", function(ev){ ev.preventDefault(); var nv=(prompt("Nom de l'élément PRF :", it.label)||"").trim(); if(nv){ it.label=nv; savePrf(); renderPrf(); } });
+        var del=document.createElement("button"); del.type="button"; del.className="del"; del.textContent="✕"; del.title="Retirer";
+        del.addEventListener("click", function(ev){ ev.preventDefault(); prfModel.splice(idx,1); savePrf(); renderPrf(); });
+        row.appendChild(ren); row.appendChild(del);
+      }
+      box.appendChild(row);
+    });
+  }
+  document.getElementById("prfAdd").addEventListener("click", function(){
+    var nom=(prompt("Nouvel élément PRF (ex. L-PRF, membranes, bouchons, tubes verts…) :","")||"").trim();
+    if(!nom) return;
+    prfModel.push({id:"prfx_"+Date.now(), label:nom}); savePrf(); renderPrf();
+  });
+  document.getElementById("prfEditBtn").addEventListener("click", function(){ prfEdit=!prfEdit; this.textContent=prfEdit?"✓ Terminer":"✎ Modifier / retirer"; renderPrf(); });
+  renderPrf();
+
+
+  // ================= Génération PDF (pur JS, sans dépendance) =================
+  function pad10(n){ n=""+n; while(n.length<10) n="0"+n; return n; }
+  function latin1(s){
+    s=String(s).replace(/×/g,"x").replace(/—/g,"-").replace(/[’‘]/g,"'").replace(/[“”]/g,'"');
+    var o=""; for(var i=0;i<s.length;i++){ var c=s.charCodeAt(i); o += c<256 ? s.charAt(i) : "?"; }
+    return o;
+  }
+  function pdfEscape(s){ return s.replace(/\\/g,"\\\\").replace(/\(/g,"\\(").replace(/\)/g,"\\)"); }
+  var _pdfLogo=null;
+  function buildPDF(ops){
+    var content = ops.join("\n");
+    var objs = [];
+    objs[1] = "<< /Type /Catalog /Pages 2 0 R >>";
+    objs[2] = "<< /Type /Pages /Kids [3 0 R] /Count 1 /MediaBox [0 0 595 842] >>";
+    objs[3] = "<< /Type /Page /Parent 2 0 R /Resources << /Font << /F1 4 0 R /F2 5 0 R /F3 6 0 R /F4 7 0 R >>"+(_pdfLogo?" /XObject << /Im1 9 0 R >>":"")+" >> /Contents 8 0 R >>";
+    objs[4] = "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>";
+    objs[5] = "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>";
+    objs[6] = "<< /Type /Font /Subtype /Type1 /BaseFont /Times-BoldItalic /Encoding /WinAnsiEncoding >>";
+    objs[7] = "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Oblique /Encoding /WinAnsiEncoding >>";
+    objs[8] = "<< /Length "+content.length+" >>\nstream\n"+content+"\nendstream";
+    if(_pdfLogo){ objs[9] = "<< /Type /XObject /Subtype /Image /Width "+_pdfLogo.w+" /Height "+_pdfLogo.h+" /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length "+_pdfLogo.data.length+" >>\nstream\n"+_pdfLogo.data+"\nendstream"; }
+    var header="%PDF-1.4\n";
+    var body="", offsets=[], pos=header.length;
+    for(var i=1;i<objs.length;i++){
+      offsets[i]=pos;
+      var s=i+" 0 obj\n"+objs[i]+"\nendobj\n";
+      body+=s; pos+=s.length;
+    }
+    var xrefPos=pos;
+    var xref="xref\n0 "+objs.length+"\n0000000000 65535 f \n";
+    for(var j=1;j<objs.length;j++){ xref+=pad10(offsets[j])+" 00000 n \n"; }
+    var trailer="trailer\n<< /Size "+objs.length+" /Root 1 0 R >>\nstartxref\n"+xrefPos+"\n%%EOF";
+    var pdf=header+body+xref+trailer;
+    var bytes=new Uint8Array(pdf.length);
+    for(var k=0;k<pdf.length;k++) bytes[k]=pdf.charCodeAt(k)&0xff;
+    return bytes;
+  }
+  // Construit la liste des opérations de dessin à partir de l'état de la fiche
+  function drawFiche(){
+    // A4 = 595 x 842 pt. Mise en page « premium » : bandeau, filet doré,
+    // encadrés arrondis, titres de section avec accent couleur, pied de page.
+    var ML=48, MR=547, W=595, H=842, ops=[], Y;
+    var NAVY="0.09 0.20 0.38", GOLD="0.78 0.63 0.28", GREY="0.55 0.55 0.55",
+        BORDER="0.72 0.74 0.80", PANEL="0.965 0.972 0.980";
+    // T(x,y,texte,fontKey,taille,couleur?)  fontKey: F1=Helvetica F2=Bold F3=Times-BoldItalic F4=Oblique
+    function T(x,y,str,font,size,color){
+      var pre=color?color+" rg ":"", post=color?" 0 0 0 rg":"";
+      ops.push(pre+"BT /"+(font||"F1")+" "+(size||11)+" Tf "+x+" "+y+" Td ("+pdfEscape(latin1(str))+") Tj ET"+post);
+    }
+    function nl(g){ Y-=(g||16); }
+    function rule(y,col){ ops.push((col||BORDER)+" RG 0.7 w "+ML+" "+y+" m "+MR+" "+y+" l S 0 0 0 RG"); }
+    function fillRect(x,y,w,h,col){ ops.push(col+" rg "+x+" "+y+" "+w+" "+h+" re f 0 0 0 rg"); }
+    function rrect(x,y,w,h,r,strokeCol,fillCol){
+      var k=r*0.5523, x2=x+w, y2=y+h, p=[];
+      p.push((x+r)+" "+y+" m");
+      p.push((x2-r)+" "+y+" l");
+      p.push((x2-r+k)+" "+y+" "+x2+" "+(y+r-k)+" "+x2+" "+(y+r)+" c");
+      p.push(x2+" "+(y2-r)+" l");
+      p.push(x2+" "+(y2-r+k)+" "+(x2-r+k)+" "+y2+" "+(x2-r)+" "+y2+" c");
+      p.push((x+r)+" "+y2+" l");
+      p.push((x+r-k)+" "+y2+" "+x+" "+(y2-r+k)+" "+x+" "+(y2-r)+" c");
+      p.push(x+" "+(y+r)+" l");
+      p.push(x+" "+(y+r-k)+" "+(x+r-k)+" "+y+" "+(x+r)+" "+y+" c");
+      var path=p.join(" ")+" h";
+      if(fillCol) ops.push(fillCol+" rg "+path+" f 0 0 0 rg");
+      ops.push((strokeCol||BORDER)+" RG 0.8 w "+path+" S 0 0 0 RG");
+    }
+    function chkbox(bx,by,checked){
+      ops.push("0.25 0.25 0.25 RG 0.9 w "+bx+" "+by+" 11 11 re S 0 0 0 RG");
+      if(checked) ops.push("0.83 0 0 RG 1.5 w "+(bx+2)+" "+(by+2)+" m "+(bx+9)+" "+(by+9)+" l S "+(bx+2)+" "+(by+9)+" m "+(bx+9)+" "+(by+2)+" l S 0 0 0 RG");
+    }
+    function val(id){ var el=document.getElementById(id); return el?el.value.trim():""; }
+    function chk(id){ var el=document.getElementById(id); return el?el.checked:false; }
+    function estW(str,size,f){ return String(str).length*size*(f===3?0.50:(f===2?0.56:0.50)); }
+    function wrap(str,size,maxw){
+      var words=String(str).replace(/\s+/g," ").trim().split(" "), lines=[], cur="";
+      words.forEach(function(w){ var t=cur?cur+" "+w:w; if(estW(t,size)>maxw && cur){ lines.push(cur); cur=w; } else cur=t; });
+      if(cur) lines.push(cur); return lines;
+    }
+    function section(title){
+      nl(16);
+      ops.push(NAVY+" rg "+ML+" "+(Y-1)+" 3.5 12 re f 0 0 0 rg");   // barre d'accent
+      T(ML+11, Y, title, "F2", 12, NAVY);
+      nl(6); rule(Y+2); nl(15);
+    }
+
+    // ---- Bandeau d'en-tête ----
+    fillRect(0, H-58, W, 58, NAVY);          // bandeau bleu nuit
+    fillRect(0, H-61, W, 3, GOLD);           // filet doré
+    var t="FICHE INTERVENTION";
+    T((W-estW(t,22,3))/2, H-38, t, "F3", 22, "1 1 1");
+
+    // ---- En-tête praticien (papier à en-tête) ----
+    Y = H-80;
+    var _ent=getEntete();
+    _pdfLogo=null;
+    var _yy=Y;
+    T(ML, _yy, _ent.dentiste||"", "F2", 11.5, NAVY); _yy-=13;
+    if(_ent.cabinet){ T(ML, _yy, _ent.cabinet, "F4", 9.5, GREY); _yy-=11; }
+    if(_ent.specialite){ T(ML, _yy, _ent.specialite, "F4", 9, GREY); _yy-=11; }
+    if(_ent.adresse){ T(ML, _yy, _ent.adresse, "F4", 8.5, GREY); _yy-=10; }
+    var _cl=[]; if(_ent.telephone) _cl.push("Tel. "+_ent.telephone); if(_ent.email) _cl.push(_ent.email);
+    if(_cl.length){ T(ML, _yy, _cl.join("   -   "), "F4", 8.5, GREY); _yy-=10; }
+    var _logoBottom=_yy;
+    if(_ent.logo && _ent.logoW && _ent.logoH){
+      try{ var _lb=atob((_ent.logo.split(",")[1]||"")); var _lh2=46, _lw2=Math.round(_lh2*_ent.logoW/_ent.logoH);
+        if(_lw2>180){ _lw2=180; _lh2=Math.round(_lw2*_ent.logoH/_ent.logoW); }
+        var _lx=MR-_lw2, _ly=H-64-_lh2;
+        ops.push("q "+_lw2+" 0 0 "+_lh2+" "+_lx+" "+_ly+" cm /Im1 Do Q");
+        _pdfLogo={data:_lb, w:_ent.logoW, h:_ent.logoH}; _logoBottom=_ly;
+      }catch(_e){}
+    }
+    Y = Math.min(_yy, _logoBottom) - 6;
+
+    // ---- Identité (panneau premium 2x2) ----
+    var idH=58;
+    rrect(ML, Y-idH+12, MR-ML, idH, 7, BORDER, PANEL);
+    var C2b=ML+272, iy=Y-2;
+    T(ML+14, iy, "PATIENT", "F2", 8, NAVY);        T(ML+14, iy-13, (val("nom")+" "+val("prenom")).trim()||"-", "F2", 12.5);
+    T(C2b,   iy, "N° DOSSIER", "F2", 8, NAVY);     T(C2b,   iy-13, (val("dossier")||"-"), "F2", 12.5);
+    T(ML+14, iy-31, "DATE", "F2", 8, NAVY);        T(ML+14+46, iy-31, val("date")||"-", "F1", 10.5);
+    T(C2b,   iy-31, "CORRESPONDANT", "F2", 8, NAVY); T(C2b+94, iy-31, val("correspondant")||"-", "F1", 10.5);
+    Y = Y - idH - 2;
+
+    // ---- Alertes médicales : encadré rouge très visible ----
+    var RED="0.80 0.10 0.10", REDBG="0.99 0.90 0.90";
+    var _al=alertModel.filter(function(it){ return chk(it.id); }).map(function(it){ return it.label; });
+    if(_al.length){
+      var _lines=wrap(_al.join("    ·    "), 11, MR-ML-30);
+      var _abH=18+_lines.length*14+8;
+      rrect(ML, Y-_abH+12, MR-ML, _abH, 5, RED, REDBG);
+      fillRect(ML, Y-_abH+12, 5, _abH, RED);
+      T(ML+16, Y, "!  ALERTES MÉDICALES", "F2", 10.5, RED);
+      var _ay=Y-16;
+      _lines.forEach(function(l){ T(ML+16, _ay, l, "F2", 11.5, RED); _ay-=14; });
+      Y = Y - _abH - 2;
+    }
+
+    // ---- Intervention ----
+    T(ML, Y, "INTERVENTION", "F2", 10, NAVY); nl(10);
+    var top=Y, boxH=74;
+    rrect(ML, top-boxH, MR-ML, boxH, 6, BORDER, "0.995 0.995 0.997");
+    var desc=val("description");
+    if(desc){ var dyy=top-18; wrap(desc,11,MR-ML-22).slice(0,4).forEach(function(l){ T(ML+12,dyy,l,"F1",11); dyy-=15; }); }
+    Y=top-boxH-6;
+
+    // ---- 1/ Actes prévus ----
+    section("1 / Actes prevus");
+    var rowH=18, ax0=ML+8, axD=ML+30, axA=ML+140, axT=ML+345, axN=ML+395;
+    function court(t,n){ t=String(t||""); return t.length>n ? t.slice(0,n-2)+".." : t; }
+    fillRect(ML, Y-5, MR-ML, rowH, NAVY);
+    T(ax0, Y+2, "N°", "F2", 8.5, "1 1 1"); T(axD, Y+2, "DISCIPLINE", "F2", 8.5, "1 1 1");
+    T(axA, Y+2, "ACTE", "F2", 8.5, "1 1 1"); T(axT, Y+2, "DENT", "F2", 8.5, "1 1 1"); T(axN, Y+2, "PRECISION", "F2", 8.5, "1 1 1");
+    nl(rowH);
+    if(actes.length){
+      actes.slice(0,9).forEach(function(it,i){
+        if(i%2===1) fillRect(ML, Y-5, MR-ML, rowH, "0.955 0.968 0.985");
+        T(ax0, Y+2, (i+1), "F2", 10, NAVY);
+        T(axD, Y+2, court(it.disc||"-",20), "F1", 10);
+        T(axA, Y+2, court(it.acte||"-",38), "F2", 10);
+        T(axT, Y+2, court(it.dent||"-",9), "F1", 10);
+        T(axN, Y+2, court(it.note||"",28), "F1", 9.5);
+        rule(Y-5, BORDER); nl(rowH);
+      });
+      if(actes.length>9){ T(ax0, Y+2, "+ "+(actes.length-9)+" autre(s) acte(s) : voir le document Word", "F4", 9.5, GREY); nl(rowH); }
+    } else { T(ax0, Y+2, "(aucun)", "F4", 10.5, GREY); nl(rowH); }
+    nl(4);
+
+    // ---- 2/ Implants : seulement si une pose est prévue ----
+    var _ao=chk("avul_oui"), _an=chk("avul_non");
+    if(implants.length || _ao || _an){
+    section("2 / Implants");
+    T(ML, Y, "Avulsion - implantation immediate :", "F1", 10.5);
+    chkbox(ML+190,Y-2,_ao); T(ML+206,Y,"oui",_ao?"F2":"F1",11,_ao?RED:null);
+    chkbox(ML+250,Y-2,_an); T(ML+266,Y,"non",_an?"F2":"F1",11,_an?RED:null); nl(20);
+    var cx0=ML+8, cxS=ML+34, cxD=ML+250, cxR=ML+330;
+    fillRect(ML, Y-5, MR-ML, rowH, NAVY);
+    T(cx0, Y+2, "N°", "F2", 8.5, "1 1 1"); T(cxS, Y+2, "SYSTEME", "F2", 8.5, "1 1 1");
+    T(cxD, Y+2, "DENT", "F2", 8.5, "1 1 1"); T(cxR, Y+2, "Ø x L / réf", "F2", 8.5, "1 1 1");
+    nl(rowH);
+    if(implants.length){
+      implants.forEach(function(it,i){
+        if(i%2===1) fillRect(ML, Y-5, MR-ML, rowH, "0.955 0.968 0.985");
+        T(cx0, Y+2, (i+1), "F2", 10.5, NAVY);
+        T(cxS, Y+2, it.sys||"-", "F2", 10.5);
+        T(cxD, Y+2, it.dent||"-", "F1", 10.5);
+        T(cxR, Y+2, it.spec||"-", "F1", 10.5);
+        rule(Y-5, BORDER); nl(rowH);
+      });
+    } else { T(cx0, Y+2, "(aucun)", "F4", 10.5, GREY); nl(rowH); }
+    nl(4);
+    }
+
+    // ---- 3/ Materiel (groupé, coché seulement, texte foncé) ----
+    section("3 / Materiel");
+    var anyMat=false;
+    matModel.forEach(function(g){
+      var got=g.items.filter(function(it){return chk(it.id);}).map(function(it){return it.label;});
+      if(!got.length) return; anyMat=true;
+      T(ML+10, Y, (g.title||"")+" :", "F2", 10, NAVY);
+      var ml=wrap(got.join(",   "), 11, MR-ML-135), my=Y;
+      ml.forEach(function(l){ T(ML+125, my, l, "F1", 11); my-=13; });
+      nl(Math.max(15, ml.length*13+2));
+    });
+    if(!anyMat){ T(ML+10,Y,"-","F4",11,GREY); nl(15); }
+
+    // ---- 4/ PRF : seulement si coché ----
+    var prf=[];
+    prfModel.forEach(function(it){ if(chk(it.id)) prf.push((val(it.id+"_n")||"?")+" "+it.label); });
+    if(prf.length){ section("4 / PRF"); T(ML+10,Y, prf.join("            "), "F2", 11); nl(15); }
+
+    // ---- Autres éléments ----
+    var cust=customs.filter(function(c){return c.checked!==false;});
+    if(cust.length){
+      section("Autres elements");
+      cust.forEach(function(c){ T(ML+10,Y,"-  "+c.label,"F1",11); nl(15); });
+    }
+
+    // ---- Pied de page ----
+    rule(54, BORDER);
+    var foot=[val("nom")+" "+val("prenom"), val("dossier")?("dossier "+val("dossier")):"", val("date")]
+      .filter(Boolean).join("    -    ");
+    T(ML, 42, foot||"Fiche de preparation d'intervention", "F4", 8.5, GREY);
+    var mark=getEntete().cabinet||"";
+    T(MR-estW(mark,8.5,4), 42, mark, "F4", 8.5, GREY);
+
+    return ops;
+  }
+
+  // ============ Enregistrement direct dans un dossier (PC, localhost) ============
+  function idbOpen(){
+    return new Promise(function(res,rej){
+      var r=indexedDB.open("fiche-fs",1);
+      r.onupgradeneeded=function(){ r.result.createObjectStore("h"); };
+      r.onsuccess=function(){ res(r.result); };
+      r.onerror=function(){ rej(r.error); };
+    });
+  }
+  function idbGet(){ return idbOpen().then(function(db){ return new Promise(function(res){
+    var t=db.transaction("h","readonly").objectStore("h").get("dir");
+    t.onsuccess=function(){ res(t.result||null); }; t.onerror=function(){ res(null); };
+  });}); }
+  function idbPut(h){ return idbOpen().then(function(db){ return new Promise(function(res){
+    var t=db.transaction("h","readwrite").objectStore("h").put(h,"dir");
+    t.onsuccess=function(){ res(); }; t.onerror=function(){ res(); };
+  });}); }
+  function ensurePerm(h){
+    var opt={mode:"readwrite"};
+    return h.queryPermission(opt).then(function(p){
+      if(p==="granted") return true;
+      return h.requestPermission(opt).then(function(p2){ return p2==="granted"; });
+    });
+  }
+  // Dossier du patient choisi UNE fois (à la 1re sauvegarde). Les
+  // enregistrements suivants y vont sans redemander. « Réinitialiser »
+  // (nouveau patient) remet ce dossier à zéro pour le patient suivant.
+  var dirHandle=null;
+  function updateFolderLabel(){
+    var wrap=document.getElementById("changeFolderWrap");
+    var link=document.getElementById("changeFolder");
+    if(!wrap || !link) return;
+    wrap.style.display="";
+    wrap.firstChild.nodeValue = dirHandle
+      ? "📁 Enregistré dans : « "+(dirHandle.name||"choisi")+" »  "
+      : "📁 Enregistrer les documents dans : ";
+    link.textContent = dirHandle ? "changer" : "choisir";
+  }
+  async function pickFolder(){
+    var last=await idbGet();
+    var opts={mode:"readwrite"};
+    if(last) opts.startIn=last;
+    var h;
+    try{ h=await window.showDirectoryPicker(opts); }
+    catch(err){ if(err && err.name==="AbortError") return null; h=await window.showDirectoryPicker({mode:"readwrite"}); }
+    await idbPut(h);
+    dirHandle=h; updateFolderLabel();
+    return h;
+  }
+  async function resolveDirHandle(){
+    var h=dirHandle;
+    if(h){
+      var opt={mode:"readwrite"};
+      var p=await h.queryPermission(opt);
+      if(p!=="granted"){ var p2=await h.requestPermission(opt); if(p2!=="granted") h=null; }
+    }
+    if(!h){ h=await pickFolder(); }   // 1re fois : on choisit le dossier du patient
+    return h;
+  }
+  async function writeDoc(h){
+    if(!(await ensurePerm(h))){ live.textContent="Écriture refusée pour ce dossier."; return; }
+    var blob=new Blob(["\ufeff"+buildDocHTML()],{type:"application/msword"});
+    var name=buildTitle()+".doc";
+    var fh=await h.getFileHandle(name,{create:true});
+    var w=await fh.createWritable(); await w.write(blob); await w.close();
+    live.textContent="✓ Word enregistré : "+name+" — dossier « "+(h.name||"choisi")+" ».";
+  }
+  async function writePDF(h){
+    if(!(await ensurePerm(h))){ live.textContent="Écriture refusée pour ce dossier."; return; }
+    var bytes=buildPDF(drawFiche());
+    var name=buildTitle()+".pdf";
+    var fh=await h.getFileHandle(name,{create:true});
+    var w=await fh.createWritable(); await w.write(bytes); await w.close();
+    live.textContent="✓ PDF enregistré : "+name+" — dossier « "+(h.name||"choisi")+" ».";
+  }
+  async function saveToFolder(){
+    try{
+      var h=await resolveDirHandle(); if(!h) return;
+      await writeDoc(h);   // Word = document principal
+    }catch(e){
+      if(e && e.name==="AbortError") return;
+      live.textContent="Enregistrement impossible : "+((e&&e.message)||e);
+    }
+  }
+  async function savePdfToFolder(){
+    try{
+      var h=await resolveDirHandle(); if(!h) return;
+      await writePDF(h);   // PDF = accessoire
+    }catch(e){
+      if(e && e.name==="AbortError") return;
+      live.textContent="Enregistrement impossible : "+((e&&e.message)||e);
+    }
+  }
+  // === Classer directement dans le dossier du patient via la passerelle ADIA ===
+  // La passerelle écrit le document dans docpatient/<n° dossier>/ (dossier réseau
+  // partagé). La secrétaire le retrouve ensuite dans la fiche du patient — aucun
+  // dossier à choisir à la main.
+  async function classerViaPasserelle(){
+    var m=document.getElementById("classerMsg");
+    function say(t,err){ if(m){ m.textContent=t; m.style.color=err?"#c0392b":"#1a7a3a"; } }
+    var elDos=document.getElementById("dossier");
+    var dossier=(elDos&&elDos.value||"").trim();
+    if(!dossier){ say("Renseignez d'abord le n° de dossier (bouton « Importer le patient (ADIA) » en haut).",true); return; }
+    var base="http://127.0.0.1:8765/classer-fiche", base2="http://localhost:8765/classer-fiche";
+    async function envoi(host, bytes, name, type){
+      var url=host+"?folder_id="+encodeURIComponent(dossier)+"&filename="+encodeURIComponent(name);
+      var r=await fetch(url,{method:"POST",headers:{"Content-Type":type},body:bytes});
+      if(!r.ok){ var e={}; try{ e=await r.json(); }catch(_){}
+        throw new Error(e.error||("Erreur passerelle (HTTP "+r.status+")")); }
+      return r.json();
+    }
+    async function envoiDouble(bytes,name,type){
+      try{ return await envoi(base,bytes,name,type); }
+      catch(e){ if(/Failed to fetch|NetworkError|load failed/i.test(String(e&&e.message||e))) return await envoi(base2,bytes,name,type); throw e; }
+    }
+    try{
+      say("Classement dans le dossier du patient…");
+      var docBlob=new Blob(["\ufeff"+buildDocHTML()],{type:"application/msword"});
+      await envoiDouble(docBlob, buildTitle()+".doc", "application/msword");
+      try{
+        var pdfBytes=buildPDF(drawFiche());
+        await envoiDouble(new Blob([pdfBytes],{type:"application/pdf"}), buildTitle()+".pdf", "application/pdf");
+      }catch(ep){ /* le Word suffit ; on n'échoue pas si le PDF pose problème */ }
+      say("✓ Classé dans le dossier du patient n° "+dossier+" (Word + PDF). La secrétaire le retrouvera dans la fiche du patient.");
+    }catch(e){
+      var msg=String(e&&e.message||e);
+      if(/Failed to fetch|NetworkError|load failed/i.test(msg))
+        say("Passerelle non trouvée. Lancez « ADIA - Passerelle logiciel » et cochez « Activer lien local ADIA », puis réessayez.",true);
+      else
+        say("Classement impossible : "+msg,true);
+    }
+  }
+  (function(){ var cb=document.getElementById("classerAdia"); if(cb) cb.addEventListener("click", classerViaPasserelle); })();
+
+  if(window.showDirectoryPicker){
+    document.getElementById("savefolder").style.display="";
+    document.getElementById("savefolder").addEventListener("click", saveToFolder);
+    var pdfBtn=document.getElementById("pdffolder");
+    if(pdfBtn){ pdfBtn.style.display=""; pdfBtn.addEventListener("click", savePdfToFolder); }
+    var cf=document.getElementById("changeFolder");
+    if(cf) cf.addEventListener("click", function(ev){ ev.preventDefault(); dirHandle=null; pickFolder(); });
+    updateFolderLabel();
+    // Sur PC, « Envoyer le PDF » (pensé pour le partage iPhone) et le
+    // téléchargement Word manuel font doublon avec l'enregistrement direct.
+    var shareBtn=document.getElementById("share");
+    if(shareBtn) shareBtn.style.display="none";
+    var wordBtn=document.getElementById("word");
+    if(wordBtn) wordBtn.style.display="none";
+  }
+  document.addEventListener("input", save, true);
+  document.addEventListener("change", save, true);
+
+  // === Fiche de liaison prothèse : la fiche d'intervention est la source unique.
+  // On dépose les données dans localStorage (même origine) et on ouvre le gabarit,
+  // qui calcule plateformes, transferts, scan bodies, analogues et délais.
+  var HANDOFF="adia-omni-handoff-v1";
+  function buildHandoff(){
+    function v(id){ var el=document.getElementById(id); return el?el.value.trim():""; }
+    return { version:1, exporte:new Date().toISOString(),
+      nom:v("nom"), prenom:v("prenom"), dossier:v("dossier"), date:v("date"), correspondant:v("correspondant"),
+      description:v("description"), avulsion:(document.getElementById("avul_oui")||{}).checked?"oui":((document.getElementById("avul_non")||{}).checked?"non":""),
+      profil:"omni",
+      alertes:alertModel.filter(function(it){ var e=document.getElementById(it.id); return e&&e.checked; }).map(function(it){ return it.label; }),
+      actes:actes.map(function(a){ return {disc:a.disc||"", acte:a.acte||"", dent:a.dent||"", note:a.note||""}; }),
+      implants:implants.map(function(i){ return {sys:i.sys||"", dent:i.dent||"", spec:i.spec||"", plat:i.plat||"auto", mua:i.mua||""}; }),
+      materiel:matModel.map(function(g){ return {titre:g.title||"", items:g.items.filter(function(it){ var e=document.getElementById(it.id); return e&&e.checked; }).map(function(it){ return {id:it.id, label:it.label}; })}; }).filter(function(g){ return g.items.length; }),
+      prf:prfModel.filter(function(it){ var e=document.getElementById(it.id); return e&&e.checked; }).map(function(it){ return {label:it.label, n:v(it.id+"_n")}; }) };
+  }
+  [["labo","labo-omnipratique.html"],
+   ["consignes","consignes-omnipratique.html"],
+   ["tracabilite","tracabilite-omnipratique.html"],
+   ["passeport","passeport-implantaire.html?profil=omni"]].forEach(function(d){
+    var b=document.getElementById(d[0]); if(!b) return;
+    b.addEventListener("click", function(){
+      if(d[0]==="passeport" && !implants.length){ alert("Le passeport concerne la pose d'implants : aucun implant n'est saisi dans cette fiche."); return; }
+      deposerHandoff();
+      location.href=d[1];   // même fenêtre : la barre du haut permet ensuite de passer d'un document à l'autre
+    });
+  });
+  // Les documents lisent toujours la fiche telle qu'elle est : on dépose les données
+  // à chaque fois qu'on quitte la fiche (barre du haut, autre onglet, fermeture).
+  function deposerHandoff(){ try{ localStorage.setItem(HANDOFF, JSON.stringify(buildHandoff())); }catch(e){} }
+  window.adiaAvantNavigation=deposerHandoff;
+  setTimeout(majSelonImplants, 600);
+  window.addEventListener("pagehide", deposerHandoff);
+  document.addEventListener("visibilitychange", function(){ if(document.visibilityState==="hidden") deposerHandoff(); });
+
+  function flash(el){
+    if(!el) return;
+    var t = el.closest(".chk") || el;
+    t.classList.add("surl");
+    setTimeout(function(){ t.classList.remove("surl"); }, 700);
+  }
+  function setChk(id,val){ var el=document.getElementById(id); if(!el) return null;
+    var prev=el.checked; el.checked=val; flash(el); save();
+    return function(){ el.checked=prev; save(); flash(el); };
+  }
+  function setTxt(id,val){ var el=document.getElementById(id); if(!el) return null;
+    var prev=el.value; el.value=val; flash(el); save();
+    return function(){ el.value=prev; save(); flash(el); };
+  }
+
+  // --- Normalisation texte (minuscules, sans accents) ---
+  function norm(s){
+    return (s||"").toLowerCase()
+      .normalize("NFD").replace(/[̀-ͯ]/g,"")
+      .replace(/['’.,;:!?()«»]/g," ")
+      .replace(/\s+/g," ").trim();
+  }
+
+  // --- Distance d'édition : tolère les mots mal transcrits ---
+  function lev(a,b){
+    if(a===b) return 0;
+    var m=a.length,n=b.length; if(!m) return n; if(!n) return m;
+    var prev=[],cur=[],j; for(j=0;j<=n;j++) prev[j]=j;
+    for(var i=1;i<=m;i++){ cur[0]=i;
+      for(j=1;j<=n;j++){ cur[j]=Math.min(prev[j]+1, cur[j-1]+1, prev[j-1]+(a[i-1]===b[j-1]?0:1)); }
+      var t=prev; prev=cur; cur=t;
+    }
+    return prev[n];
+  }
+  function simWord(a,b){
+    if(a===b) return true;
+    var L=Math.max(a.length,b.length);
+    if(L<4) return false;               // mots courts : exact seulement
+    var d=lev(a,b);
+    return L<7 ? d<=1 : d<=2;           // 1 faute tolérée, 2 sur les mots longs
+  }
+  // Cherche la suite de mots « phrase » dans les tokens, avec tolérance
+  function fuzzyHas(tokens, phrase){
+    var pt=phrase.split(" ");
+    outer: for(var i=0;i+pt.length<=tokens.length;i++){
+      for(var j=0;j<pt.length;j++){ if(!simWord(tokens[i+j],pt[j])) continue outer; }
+      return true;
+    }
+    return false;
+  }
+  // Corrections des transcriptions fréquentes (appliquées après norm)
+  var CANON=[
+    [/\bcre\s?os\b/g,"creos"],[/\bcreo\b/g,"creos"],[/\bcleos\b/g,"creos"],[/\bcryos\b/g,"creos"],[/\bcreole\b/g,"creos"],[/\bcreux os\b/g,"creos"],
+    [/\b(pur|bur|per)\s?go[st]?\b/g,"purgo"],[/\bpurgeau\b/g,"purgo"],[/\bpurgatoire\b/g,"purgo"],
+    [/\bbio\s?ban(k|que)s?\b/g,"biobank"],
+    [/\bg\s?t\s?o\b/g,"gto"],[/\bjeteo\b/g,"gto"],[/\bgeteo\b/g,"gto"],
+    [/\bt\s?x\s?t\b/g,"txt"],[/\btexte?\b/g,"txt"],
+    [/\bversa(h|illes?)?\b/g,"versah"],
+    [/\b(viard|wiard|ouiart|wyatt|huyart|vuiart)\b/g,"wyart"],
+    [/\bparall?[a-z]*\b/g,"parallel"],
+    [/\bactifs?\b/g,"active"],[/\bactives?\b/g,"active"],
+    [/\b[ae]vulsions?\b/g,"avulsion"],[/\bconvulsions?\b/g,"avulsion"],[/\bavulsion[a-z]*\b/g,"avulsion"],
+    [/\bcontre[ -]?angles?\b/g,"contre-angle"],
+    [/\bpiliers?\b/g,"pilier"],
+    [/\bpi[eè]?ces? a mains?\b/g,"piece a main"],
+    [/\bfor[ea]ts?\b/g,"foret"],
+    [/\bempreintes?\b/g,"empreinte"],
+    [/\bdocteur\b/g,"dr"],
+    [/\bcorrespondan(ts|ces?|d)\b/g,"correspondant"],
+    [/\bprenoms\b/g,"prenom"],[/\bdossiers\b/g,"dossier"]
+  ];
+  function canon(s){ CANON.forEach(function(p){ s=s.replace(p[0],p[1]); }); return s; }
+
+  // --- Nombres dits en lettres -> chiffres ---
+  // Gère les dents FDI (11-48, ex. "seize"=16, "vingt-six"=26) et les
+  // dosages (ex. "zéro vingt-cinq"=0 25). Ordre = composés AVANT simples.
+  var NOMBRES = [
+    ["dix[ -]?sept","17"],["dix[ -]?huit","18"],["dix[ -]?neuf","19"],
+    ["onze","11"],["douze","12"],["treize","13"],["quatorze","14"],["quinze","15"],["seize","16"],
+    ["vingt[ -]?et[ -]?un","21"],["vingt[ -]?deux","22"],["vingt[ -]?trois","23"],["vingt[ -]?quatre","24"],["vingt[ -]?cinq","25"],["vingt[ -]?six","26"],["vingt[ -]?sept","27"],["vingt[ -]?huit","28"],["vingt[ -]?neuf","29"],
+    ["trente[ -]?et[ -]?un","31"],["trente[ -]?deux","32"],["trente[ -]?trois","33"],["trente[ -]?quatre","34"],["trente[ -]?cinq","35"],["trente[ -]?six","36"],["trente[ -]?sept","37"],["trente[ -]?huit","38"],
+    ["quarante[ -]?et[ -]?un","41"],["quarante[ -]?deux","42"],["quarante[ -]?trois","43"],["quarante[ -]?quatre","44"],["quarante[ -]?cinq","45"],["quarante[ -]?six","46"],["quarante[ -]?sept","47"],["quarante[ -]?huit","48"],
+    ["vingt","20"],["trente","30"],["quarante","40"],["cinquante","50"],["soixante","60"],
+    ["zero","0"],["une","1"],["un","1"],["deux","2"],["trois","3"],["quatre","4"],["cinq","5"],["six","6"],["sept","7"],["huit","8"],["neuf","9"],["dix","10"],
+    ["cents","00"],["cent","100"]
+  ];
+  function chiffrer(s){
+    NOMBRES.forEach(function(p){ s = s.replace(new RegExp("\\b"+p[0]+"\\b","g"), p[1]); });
+    return s;
+  }
+
+  // --- Table de reconnaissance des cases : mots-clés (déjà normalisés) ---
+  var CHECKS = [];   // reconstruit par rebuildChecks() à partir du modèle Matériel
+
+  // --- Champs texte : mot déclencheur -> id ---
+  var TEXTS = [
+    {id:"correspondant", label:"Correspondant", trig:["dr correspondant","praticien correspondant","correspondant"]},
+    {id:"nom",     label:"NOM", trig:["nom de famille","nom"]},
+    {id:"prenom",  label:"Prénom", trig:["prenom"]},
+    {id:"dossier", label:"N° dossier", trig:["numero de dossier","numero dossier","dossier"]},
+    {id:"date",    label:"Date", trig:["date d intervention","date"]}
+  ];
+  // La valeur capturée s'arrête au prochain mot-clé (permet « nom dupont prénom jean dossier 1234 »)
+  var STOPS=["correspondant","nom","prenom","dossier","date","description","implant","implants","numero","avulsion"];
+  function cutAtStop(val){
+    var toks=val.split(" ");
+    for(var i=1;i<toks.length;i++){ if(STOPS.indexOf(toks[i])!==-1) return toks.slice(0,i).join(" "); }
+    return val;
+  }
+
+  // process() applique la phrase et RETOURNE la liste des actions effectuées
+  // (chaque action : {desc, undo}) — permet le journal + « annuler ».
+  function process(raw){
+    var acts=[];
+    function did(desc,undo){ acts.push({desc:desc, undo:undo||null}); }
+
+    // Description libre : « description … » (remplit le cadre Intervention)
+    var mDesc = raw.match(/\bdescription\s+(.{1,300})/i);
+    if(mDesc){
+      var dv=snapToVocab(mDesc[1].replace(/[.\s]+$/,"").trim());
+      did("Intervention : « "+dv.slice(0,60)+(dv.length>60?"…":"")+" »", setTxt("description", dv));
+      return acts;
+    }
+
+    var n0 = canon(chiffrer(norm(raw)));
+    if(!n0) return acts;
+    var tokens = n0.split(" ");
+
+    // Implants : « implant active 16 21 » (plusieurs dents = plusieurs implants)
+    if(/\bimplants?\b/.test(n0)){
+      var sys = /parallel/.test(n0) ? "NobelParallel"
+              : (/\bna\b/.test(n0) ? "NA" : "NobelActive");
+      var nums = n0.replace(/\bimplants?\b/g," ").match(/\b\d{1,2}\b/g) || [];
+      if(!nums.length) nums=[""];
+      nums.forEach(function(d){
+        addImplant(sys, d);
+        did("Implant "+sys+(d?" dent "+d:""), function(){
+          for(var i=implants.length-1;i>=0;i--){ if(implants[i].sys===sys && implants[i].dent===d){ implants.splice(i,1); break; } }
+          saveImplants(); renderImplants();
+        });
+      });
+      return acts;
+    }
+
+    // Ajout d'un élément hors liste : « ajoute … »
+    var mAdd = raw.match(/\b(?:ajoute[rz]?|rajoute[rz]?)\s+(.{1,60})/i);
+    if(mAdd){
+      var av=snapToVocab(mAdd[1].trim());
+      addCustom(av);
+      did("Ajouté : "+av, function(){ customs.pop(); saveCustoms(); renderCustoms(); });
+      return acts;
+    }
+
+    // Décocher / effacer
+    var negation = /\b(decoche|decocher|efface|effacer|enleve|enlever|retire|retirer|supprime|supprimer)\b/.test(n0);
+
+    // 1) champs texte
+    if(negation){
+      TEXTS.forEach(function(f){
+        f.trig.some(function(t){
+          if(new RegExp("\\b"+t.replace(/ /g,"\\s+")+"\\b").test(n0)){
+            did(f.label+" effacé", setTxt(f.id,"")); return true;
+          }
+          return false;
+        });
+      });
+    } else {
+      TEXTS.forEach(function(f){
+        f.trig.some(function(t){
+          var re = new RegExp("\\b"+t.replace(/ /g,"\\s+")+"\\s+([a-z0-9/ -]{1,60})");
+          var m = re.exec(n0);
+          if(!m || !m[1]) return false;
+          var val = cutAtStop(m[1].trim());
+          if(!val) return false;
+          val = val.replace(/^(est|c est|cest|c|le|la|les|du|de|des|un|une|1)\s+/,"");   // « correspondant c'est … »
+          val = snapToVocab(val);
+          if(!val) return false;
+          if(f.id==="nom") val = val.toUpperCase();
+          else if(f.id==="prenom"||f.id==="correspondant") val = val.charAt(0).toUpperCase()+val.slice(1);
+          did(f.label+" : "+val, setTxt(f.id, val));
+          return true;
+        });
+      });
+    }
+
+    // 2) cases à cocher (correspondance floue mot à mot)
+    CHECKS.forEach(function(c){
+      var hit = c.keys.some(function(k){ return fuzzyHas(tokens,k); });
+      if(hit) did((negation?"Décoché : ":"Coché : ")+c.label, setChk(c.id, !negation));
+    });
+    // oui/non avulsion mutuellement exclusifs
+    if(!negation && n0.indexOf("avulsion")!==-1){
+      if(/\boui\b/.test(n0)) setChk("avul_non", false);
+      else if(/\bnon\b/.test(n0)) setChk("avul_oui", false);
+    }
+
+    // 3) PRF : nombre variable de tubes rouges / blancs
+    if(/tubes?\s+rouges?/.test(n0)){
+      var mr = n0.match(/(\d+)\s+tubes?\s+rouges?/);
+      var ur = setChk("prf_rouge", !negation);
+      if(mr && !negation) setTxt("prf_rouge_n", mr[1]);
+      did((negation?"Décoché : ":"PRF : ")+(mr&&!negation?mr[1]+" ":"")+"tubes rouges", ur);
+    }
+    if(/tubes?\s+blancs?/.test(n0)){
+      var mb = n0.match(/(\d+)\s+tubes?\s+blancs?/);
+      var ub = setChk("prf_blanc", !negation);
+      if(mb && !negation) setTxt("prf_blanc_n", mb[1]);
+      did((negation?"Décoché : ":"PRF : ")+(mb&&!negation?mb[1]+" ":"")+"tubes blancs", ub);
+    }
+
+    return acts;
+  }
+
+  // --- Reconnaissance vocale ---
+  var SR = (window.adiaModeCabinet && window.adiaModeCabinet()) ? null : (window.SpeechRecognition || window.webkitSpeechRecognition);
+  var mic = document.getElementById("mic");
+  var live = document.getElementById("live");
+  var warn = document.getElementById("warn");
+  var micFab = document.getElementById("micFab");
+  var rec = null, running = false;
+
+  if(!SR){
+    if(!(window.adiaModeCabinet && window.adiaModeCabinet())) warn.style.display="block";
+    warn.textContent = "La dictée par commandes n'est pas disponible sur ce navigateur. "
+      + "Astuce : tapez dans les champs, ou utilisez le micro du clavier de votre téléphone "
+      + "(dictée native) directement dans chaque zone de texte. Sur iPhone, préférez Safari.";
+    mic.textContent = "🎤 Dictée non disponible";
+    mic.disabled = true;
+    document.getElementById("descMic").style.display="none";
+  } else {
+    micFab.classList.add("show");
+    rec = new SR();
+    rec.lang = "fr-FR";
+    // Non continu : iOS/Safari émet alors un vrai résultat "final" par phrase,
+    // et on relance après chaque phrase. Sinon iOS ne donne que du provisoire.
+    rec.continuous = false;
+    rec.interimResults = true;
+    rec.maxAlternatives = 4;   // on essaie aussi les transcriptions alternatives
+
+    // --- Journal des commandes comprises (+ annuler) ---
+    var logBox = document.getElementById("cmdlog");
+    function logPhrase(heard, acts){
+      var e=document.createElement("div"); e.className="cmditem "+(acts.length?"ok":"ko");
+      var txt=document.createElement("span");
+      if(acts.length){
+        txt.textContent="✓ "+acts.map(function(a){return a.desc;}).join(" · ");
+        e.appendChild(txt);
+        var undo=document.createElement("a"); undo.href="#"; undo.textContent="annuler"; undo.className="undo";
+        undo.addEventListener("click", function(ev){ ev.preventDefault();
+          acts.forEach(function(a){ if(typeof a.undo==="function") a.undo(); });
+          e.classList.add("undone"); undo.remove();
+        });
+        e.appendChild(undo);
+      } else {
+        txt.textContent="✗ Non reconnu : « "+heard.trim()+" » — reformulez (voir « Commandes vocales »)";
+        e.appendChild(txt);
+      }
+      logBox.insertBefore(e, logBox.firstChild);
+      while(logBox.children.length>5) logBox.removeChild(logBox.lastChild);
+    }
+    // Essaie chaque transcription alternative jusqu'à ce qu'une soit comprise
+    function handlePhrase(alts){
+      var heard=(alts[0]||"").trim();
+      // Mode « Dicter ici » : tout va mot pour mot dans le cadre Intervention
+      if(descMode){
+        var ta=document.getElementById("description"), prev=ta.value;
+        var add=snapToVocab(heard);
+        if(add){
+          ta.value=(prev?prev.replace(/\s+$/,"")+" ":"")+add;
+          save(); flash(ta);
+          live.textContent="✓ "+add;
+          logPhrase(add, [{desc:"Intervention + « "+add.slice(0,50)+(add.length>50?"…":"")+" »", undo:function(){ ta.value=prev; save(); }}]);
+        }
+        return;
+      }
+      var best=null;
+      for(var i=0;i<alts.length;i++){
+        var a=(alts[i]||"").trim(); if(!a) continue;
+        var acts=process(a);
+        if(acts.length){ best=acts; heard=a; break; }
+      }
+      live.textContent="✓ "+heard;
+      logPhrase(heard, best||[]);
+    }
+
+    var pending = "";  // dernier texte provisoire non finalisé
+    rec.onresult = function(e){
+      var interim="";
+      for(var i=e.resultIndex;i<e.results.length;i++){
+        var r=e.results[i];
+        if(r.isFinal){
+          pending="";
+          var alts=[]; for(var k=0;k<r.length && k<4;k++){ if(r[k] && r[k].transcript) alts.push(r[k].transcript); }
+          handlePhrase(alts);
+        } else interim += r[0].transcript;
+      }
+      if(interim){ pending=interim; live.textContent="… "+interim; }
+    };
+    rec.onerror = function(e){
+      if(e.error==="not-allowed" || e.error==="service-not-allowed"){
+        warn.style.display="block";
+        warn.textContent="Micro refusé. Autorisez le micro pour ce site dans les réglages du navigateur/iOS.";
+        stop();
+      }
+    };
+    rec.onend = function(){
+      // iOS ne marque pas toujours "final" : on traite le dernier provisoire à la fin de phrase.
+      if(pending && pending.trim()){
+        var t = pending; pending = "";
+        handlePhrase([t]);
+      }
+      if(running){ setTimeout(function(){ try{ rec.start(); }catch(e){} }, 300); } // relance auto
+    };
+
+    function start(){ running=true; mic.classList.add("on"); micFab.classList.add("on"); micFab.textContent="⏹️"; mic.textContent="⏹️ Arrêter la dictée"; try{rec.start();}catch(e){} }
+    function stop(){ running=false; setDesc(false); mic.classList.remove("on"); micFab.classList.remove("on"); micFab.textContent="🎤"; mic.textContent="🎤 Démarrer la dictée"; try{rec.stop();}catch(e){} }
+    var toggle=function(){ running?stop():start(); };
+    mic.addEventListener("click", toggle);
+    micFab.addEventListener("click", toggle);
+    // Mode « Dicter ici » (cadre Intervention)
+    var descMode=false, descBtn=document.getElementById("descMic");
+    function setDesc(v){ descMode=v; descBtn.classList.toggle("on",v); descBtn.textContent=v?"⏹️ Terminer la dictée du texte":"🎤 Dicter ici"; }
+    descBtn.addEventListener("click", function(){
+      if(descMode){ stop(); }
+      else { setDesc(true); if(!running) start(); }
+    });
+  }
+
+  // --- Boutons ---
+  // Nom de fichier PDF = n° de dossier + nom patient (pour classer dans le bon dossier)
+  function slug(s){
+    return (s||"").normalize("NFD").replace(/[̀-ͯ]/g,"")
+      .replace(/[^A-Za-z0-9]+/g,"-").replace(/^-+|-+$/g,"");
+  }
+  function buildTitle(){
+    var dossier=document.getElementById("dossier").value.trim();
+    var nom=document.getElementById("nom").value.trim();
+    var date=document.getElementById("date").value.trim();
+    var parts=[];
+    if(dossier) parts.push(slug(dossier));
+    if(nom) parts.push(slug(nom).toUpperCase());
+    parts.push("fiche-omnipratique");
+    if(date) parts.push(slug(date));
+    return parts.join("_");
+  }
+  // Sur iOS/Android, le nom proposé du PDF = titre du document : on le règle avant impression.
+  function printWithName(){
+    var prev=document.title;
+    document.title=buildTitle();
+    window.print();
+    setTimeout(function(){ document.title=prev; }, 1500);
+  }
+  document.getElementById("print").addEventListener("click", printWithName);
+  document.getElementById("share").addEventListener("click", function(){
+    var d=document.getElementById("dossier").value.trim();
+    if(!d && !confirm("Aucun n° de dossier saisi : le PDF ne portera pas le numéro du patient. Continuer ?")) return;
+    live.textContent="Dans l'aperçu : touchez l'icône Partager pour envoyer (Fichiers, Mail, AirDrop). Le PDF s'appelle « "+buildTitle()+" ».";
+    printWithName();
+  });
+  // --- Export Word (.doc modifiable : champs vides = lignes à compléter) ---
+  function buildDocHTML(){
+    function v(id){var el=document.getElementById(id);return el?el.value.trim():"";}
+    function c(id){var el=document.getElementById(id);return el?el.checked:false;}
+    function esc(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
+    function box(ck,label){ var L=esc(label); return "<span style='white-space:nowrap'><span style='font-size:13pt"+(ck?";color:#c0110f":"")+"'>"+(ck?"&#9746;":"&#9744;")+"</span> "+(ck?"<b style='color:#c0110f'>"+L+"</b>":L)+"</span>"; }
+    var NAVY="#173a63", RED="#c0110f";
+    var H3="font-size:11.5pt;color:"+NAVY+";font-weight:bold;margin:13px 0 4px;border-bottom:1.5px solid "+NAVY+";padding-bottom:2px";
+    var letterhead=(function(){ var e=getEntete();
+      var logo=e.logo?"<img src='"+e.logo+"' style='max-height:58px;max-width:210px'><br>":"";
+      var lines=[]; if(e.adresse) lines.push(esc(e.adresse));
+      var te=[]; if(e.telephone) te.push("Tél. "+esc(e.telephone)); if(e.email) te.push(esc(e.email));
+      if(te.length) lines.push(te.join(" · "));
+      var coord=lines.map(function(l){ return "<div style='font-size:9pt;color:#555'>"+l+"</div>"; }).join("");
+      return "<div style='text-align:center'>"+logo+"<b style='font-size:15pt'>"+esc(e.dentiste||"")+"</b>"+(e.cabinet?"<br>"+esc(e.cabinet):"")+(e.specialite?"<br><span style='font-size:9.5pt;color:#555'>"+esc(e.specialite)+"</span>":"")+coord+"</div>"; })();
+    var banner="<table width='100%' cellpadding='8' cellspacing='0' style='margin:12px 0 8px'><tr><td bgcolor='"+NAVY+"' style='color:#ffffff;font-size:16pt;font-weight:bold;letter-spacing:2px;text-align:center'>FICHE INTERVENTION</td></tr></table>";
+    function pcell(lbl,val,big){ return "<td width='50%' style='padding:6px 10px;vertical-align:top'><div style='font-size:8pt;color:"+NAVY+";font-weight:bold;letter-spacing:.5px'>"+lbl+"</div><div style='font-size:"+(big?"12.5pt;font-weight:bold":"10.5pt")+"'>"+(esc(val)||"&nbsp;")+"</div></td>"; }
+    var patient="<table width='100%' cellpadding='0' cellspacing='0' style='border:1px solid #dde3ec;background:#f7f9fc'>"
+      +"<tr>"+pcell("PATIENT",(v("nom")+" "+v("prenom")).trim(),1)+pcell("N° DOSSIER",v("dossier"),1)+"</tr>"
+      +"<tr>"+pcell("DATE D'INTERVENTION",v("date"),0)+pcell("CORRESPONDANT",v("correspondant"),0)+"</tr></table>";
+    var al=alertModel.filter(function(it){return c(it.id);}).map(function(it){return esc(it.label);});
+    var alerts=al.length ? "<table width='100%' cellpadding='0' cellspacing='0' style='margin:10px 0'><tr>"
+      +"<td width='6' bgcolor='"+RED+"'></td>"
+      +"<td bgcolor='#fdeaea' style='padding:8px 12px;border:1px solid "+RED+";border-left:none'>"
+      +"<span style='color:"+RED+";font-weight:bold;font-size:11pt'>&#9888; ALERTES MÉDICALES</span><br>"
+      +"<span style='color:"+RED+";font-weight:bold;font-size:11.5pt'>"+al.join(" &nbsp;•&nbsp; ")+"</span></td></tr></table>" : "";
+    var desc=v("description");
+    var intervention="<div style='"+H3+"'>Intervention</div><p style='margin:2px 0'>"+(desc?esc(desc).replace(/\n/g,"<br>"):"<span style='color:#999'>—</span>")+"</p>";
+    var TD="padding:5px 8px;border:1px solid #dde3ec", TH="color:#fff;padding:5px 8px;font-size:8.5pt;font-weight:bold";
+    var actBody=actes.length ? actes.map(function(it,i){
+      var bg=i%2?" bgcolor='#f4f7fb'":"";
+      return "<tr"+bg+"><td style='"+TD+"'><b style='color:"+NAVY+"'>"+(i+1)+"</b></td>"
+        +"<td style='"+TD+"'>"+esc(it.disc||"-")+"</td><td style='"+TD+"'><b>"+esc(it.acte||"-")+"</b></td>"
+        +"<td style='"+TD+"'>"+esc(it.dent||"-")+"</td><td style='"+TD+"'>"+esc(it.note||"")+"</td></tr>";
+    }).join("") : "<tr><td colspan='5' style='"+TD+";color:#999'>(aucun)</td></tr>";
+    var actesSec="<div style='"+H3+"'>1 / Actes prévus</div>"
+      +"<table width='100%' cellpadding='0' cellspacing='0' style='border-collapse:collapse'>"
+      +"<tr><td bgcolor='"+NAVY+"' style='"+TH+"'>N°</td><td bgcolor='"+NAVY+"' style='"+TH+"'>DISCIPLINE</td><td bgcolor='"+NAVY+"' style='"+TH+"'>ACTE</td>"
+      +"<td bgcolor='"+NAVY+"' style='"+TH+"'>DENT</td><td bgcolor='"+NAVY+"' style='"+TH+"'>PRÉCISION</td></tr>"+actBody+"</table>";
+    var avecImplants=implants.length || c("avul_oui") || c("avul_non");
+    var avulsion="<p style='margin:2px 0 6px'>Avulsion – implantation immédiate : "+box(c("avul_oui"),"oui")+" &nbsp;&nbsp;&nbsp; "+box(c("avul_non"),"non")+"</p>";
+    var impBody=implants.length ? implants.map(function(it,i){
+      var bg=i%2?" bgcolor='#f4f7fb'":"";
+      return "<tr"+bg+"><td style='padding:5px 8px;border:1px solid #dde3ec'><b style='color:"+NAVY+"'>"+(i+1)+"</b></td>"
+        +"<td style='padding:5px 8px;border:1px solid #dde3ec'><b>"+esc(it.sys||"-")+"</b></td>"
+        +"<td style='padding:5px 8px;border:1px solid #dde3ec'>"+esc(it.dent||"-")+"</td>"
+        +"<td style='padding:5px 8px;border:1px solid #dde3ec'>"+esc(it.spec||"-")+"</td></tr>";
+    }).join("") : "<tr><td colspan='4' style='padding:5px 8px;border:1px solid #dde3ec;color:#999'>(aucun)</td></tr>";
+    var implantsSec="<div style='"+H3+"'>2 / Implants</div>"+avulsion
+      +"<table width='100%' cellpadding='0' cellspacing='0' style='border-collapse:collapse'>"
+      +"<tr><td bgcolor='"+NAVY+"' style='color:#fff;padding:5px 8px;font-size:8.5pt;font-weight:bold'>N°</td>"
+      +"<td bgcolor='"+NAVY+"' style='color:#fff;padding:5px 8px;font-size:8.5pt;font-weight:bold'>SYSTÈME</td>"
+      +"<td bgcolor='"+NAVY+"' style='color:#fff;padding:5px 8px;font-size:8.5pt;font-weight:bold'>DENT</td>"
+      +"<td bgcolor='"+NAVY+"' style='color:#fff;padding:5px 8px;font-size:8.5pt;font-weight:bold'>Ø × L / réf</td></tr>"+impBody+"</table>";
+    var matGroups=matModel.map(function(g){
+      var got=g.items.filter(function(it){return c(it.id);}).map(function(it){return esc(it.label);});
+      return got.length ? "<div style='margin:3px 0'><b style='color:"+NAVY+"'>"+esc(g.title||"")+" :</b> "+got.join(", ")+"</div>" : "";
+    }).filter(Boolean).join("");
+    if(!matGroups) matGroups="<div style='color:#999'>—</div>";
+    var materielSec="<div style='"+H3+"'>3 / Matériel</div>"+matGroups;
+    var prfArr=prfModel.filter(function(it){return c(it.id);}).map(function(it){ return "<b>"+(v(it.id+"_n")||"?")+"</b> "+esc(it.label); });
+    var prfSec="<div style='"+H3+"'>4 / PRF</div><p style='margin:2px 0'>"+(prfArr.length?prfArr.join(" &nbsp;&nbsp; "):"<span style='color:#999'>—</span>")+"</p>";
+    var cust=customs.filter(function(x){return x.checked!==false;}).map(function(x){return "<li>"+esc(x.label)+"</li>";}).join("");
+    var autres=cust ? "<div style='"+H3+"'>Autres éléments</div><ul style='margin:2px 0'>"+cust+"</ul>" : "";
+    return "<html xmlns:w='urn:schemas-microsoft-com:office:word'><head><meta charset='utf-8'><title>"+esc(buildTitle())+"</title></head>"
+     +"<body style='font-family:Arial; font-size:11pt; color:#111'>"
+     +letterhead+banner+patient+alerts+intervention+actesSec+(avecImplants?implantsSec:"")+materielSec+(prfArr.length?prfSec:"")+autres
+     +"</body></html>";
+  }
+  document.getElementById("word").addEventListener("click", function(){
+    var blob=new Blob(["\ufeff"+buildDocHTML()],{type:"application/msword"});
+    var a=document.createElement("a");
+    a.href=URL.createObjectURL(blob);
+    a.download=buildTitle()+".doc";
+    document.body.appendChild(a); a.click();
+    setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); }, 2000);
+    live.textContent="📝 Document Word créé : "+buildTitle()+".doc — modifiable, les champs vides sont des lignes à compléter.";
+  });
+  document.getElementById("reset").addEventListener("click", function(){
+    if(!confirm("Effacer toute la fiche ?")) return;
+    fields().forEach(function(el){ if(skip(el)) return; if(el.type==="checkbox") el.checked=false; else el.value=""; });
+    customs=[]; saveCustoms(); renderCustoms();
+    implants=[]; saveImplants(); renderImplants();
+    actes=[]; saveActes(); renderActes(); renderMat();
+    save();
+    dirHandle=null; updateFolderLabel();   // patient suivant : on redemandera le dossier
+    live.textContent="Fiche réinitialisée.";
+  });
+
+  // Correspondants : menu déroulant mémorisé
+  var CORR_STORE="fiche-correspondants-v1";
+  var corrEl=document.getElementById("correspondant");
+  var corrSel=document.getElementById("corrSelect");
+  var corrDel=document.getElementById("corrDel");
+  var corrs=[];
+  try{ corrs=JSON.parse(localStorage.getItem(CORR_STORE)||"[]"); }catch(e){ corrs=[]; }
+  function renderCorr(){
+    corrSel.innerHTML="<option value=''>— Choisir —</option>";
+    corrs.forEach(function(c){ var o=document.createElement("option"); o.value=c; o.textContent=c; corrSel.appendChild(o); });
+    if(corrEl.value && corrs.indexOf(corrEl.value)>=0) corrSel.value=corrEl.value;
+  }
+  function saveCorr(){ try{ localStorage.setItem(CORR_STORE, JSON.stringify(corrs)); }catch(e){} }
+  function addCorr(v){ v=(v||"").trim(); if(!v) return; if(!corrs.some(function(x){return x.toLowerCase()===v.toLowerCase();})){ corrs.push(v); saveCorr(); } renderCorr(); corrSel.value=v; }
+  renderCorr();
+  corrSel.addEventListener("change", function(){ if(corrSel.value){ corrEl.value=corrSel.value; save(); } });
+  corrEl.addEventListener("blur", function(){ addCorr(corrEl.value); });
+  corrDel.addEventListener("click", function(){
+    var v=corrSel.value; if(!v) return;
+    corrs=corrs.filter(function(x){return x!==v;}); saveCorr(); renderCorr();
+    if(corrEl.value===v){ corrEl.value=""; save(); }
+  });
+
+  // Date d'intervention : calendrier -> texte formaté FR
+  var datePick=document.getElementById("datePick");
+  if(datePick){
+    datePick.addEventListener("change", function(){
+      if(!datePick.value) return;
+      var d=new Date(datePick.value+"T00:00:00");
+      var s=d.toLocaleDateString("fr-FR",{weekday:"long",day:"2-digit",month:"2-digit",year:"numeric"});
+      var el=document.getElementById("date"); el.value=s; save();
+    });
+  }
+
+  // Ajout d'élément au doigt
+  var cInput=document.getElementById("customInput");
+  document.getElementById("customAdd").addEventListener("click", function(){
+    addCustom(cInput.value); cInput.value=""; cInput.focus();
+  });
+  cInput.addEventListener("keydown", function(e){
+    if(e.key==="Enter"){ e.preventDefault(); addCustom(cInput.value); cInput.value=""; }
+  });
+
+})();
+</script>
+<script>
+/* Mode cabinet (activé par défaut) : aucune donnée de patient ne quitte le cabinet.
+   Coupe la dictée IA (voix envoyée à un serveur), la lecture d'écran par IA et la dictée du navigateur (serveurs Google). */
+window.adiaModeCabinet=function(){ try{ return localStorage.getItem("adia-mode-cabinet")!=="off"; }catch(e){ return true; } };
+window.adiaReactiverIA=function(){
+  var ok=confirm("Réactiver les fonctions IA externes ?\n\nLa dictée IA et la lecture d'écran envoient la voix et des données du patient à un serveur extérieur au cabinet. "
+    +"À ne faire que si cet hébergement est certifié HDS et couvert par un contrat de sous-traitance.");
+  if(!ok) return; try{ localStorage.setItem("adia-mode-cabinet","off"); }catch(e){} location.reload();
+};
+window.adiaRetourCabinet=function(){ try{ localStorage.removeItem("adia-mode-cabinet"); }catch(e){} location.reload(); };
+</script>
+<script id="adia-dictee-ia">
+(function(){
+  var SB_URL="https://gcnammzonyrhxhrmklrn.supabase.co";
+  var SB_KEY="sb_publishable_CHEfcDwVJfTMFTcnDLbGwQ_g99uoWim";
+  var TOK="fiche-adia-token";
+  function token(){ try{return localStorage.getItem(TOK)||"";}catch(e){return "";} }
+  function setToken(t){ try{localStorage.setItem(TOK,t||"");}catch(e){} }
+  function norm(s){ return (s||"").normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim(); }
+  function setMsg(t,err){ var el=document.getElementById("iaDicteeMsg"); if(el){ el.textContent=t||""; el.style.color=err?"#b0243a":"#1a7a3a"; el.style.fontWeight=err?"600":"400"; } }
+
+  async function login(){
+    return new Promise(function(resolve){
+      var ov=document.createElement("div");
+      ov.style.cssText="position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center";
+      ov.innerHTML="<form style='background:#fff;padding:20px;border-radius:12px;min-width:280px;font-family:sans-serif'>"
+        +"<h3 style='margin:0 0 10px;color:#1a3e6f'>Connexion ADIA (une fois)</h3>"
+        +"<p style='font-size:13px;color:#555;margin:0 0 10px'>Votre compte ADIA Clinic, pour la dictee IA.</p>"
+        +"<input id='iaMail' type='email' placeholder='email' style='width:100%;padding:9px;margin:0 0 8px;border:1px solid #ccc;border-radius:8px'>"
+        +"<input id='iaPwd' type='password' placeholder='mot de passe' style='width:100%;padding:9px;margin:0 0 12px;border:1px solid #ccc;border-radius:8px'>"
+        +"<div style='display:flex;gap:8px'><button type='submit' style='flex:1;padding:10px;border:none;border-radius:8px;background:#1a3e6f;color:#fff;font-weight:600;cursor:pointer'>Se connecter</button>"
+        +"<button type='button' id='iaCancel' style='padding:10px;border:1px solid #ccc;border-radius:8px;background:#f4f6f9;cursor:pointer'>Annuler</button></div>"
+        +"<div id='iaErr' style='color:#b0243a;font-size:13px;margin-top:8px'></div></form>";
+      document.body.appendChild(ov);
+      ov.querySelector("#iaCancel").onclick=function(){ ov.remove(); resolve(false); };
+      ov.querySelector("form").onsubmit=async function(e){
+        e.preventDefault();
+        var email=ov.querySelector("#iaMail").value.trim(), pwd=ov.querySelector("#iaPwd").value;
+        ov.querySelector("#iaErr").textContent="Connexion...";
+        try{
+          var r=await fetch(SB_URL+"/auth/v1/token?grant_type=password",{method:"POST",headers:{"Content-Type":"application/json","apikey":SB_KEY},body:JSON.stringify({email:email,password:pwd})});
+          var d=await r.json();
+          if(!r.ok || !d.access_token) throw new Error(d.error_description||d.msg||"Identifiants refuses");
+          setToken(d.access_token); ov.remove(); resolve(true);
+        }catch(err){ ov.querySelector("#iaErr").textContent=(err.message||err); }
+      };
+    });
+  }
+
+  function ficheGlossary(){
+    var mats=[];
+    try{ mats=matLabels().map(function(x){return x.label;}); }catch(e){}
+    var fixed=["implant","implant actif","implant parallèle","avulsion","implantation immédiate",
+      "PRF","tubes rouges","tubes blancs","BPRF","CPRI","exp","exposition","ALV","WYART",
+      "pilier provisoire","pins","contre-angle rouge","pièce à main","guide labo","forets Versah",
+      "Straumann","Nobel","comblement","membrane","empreinte","provisoire","cicatrisation"];
+    var vocab=""; try{ var vv=JSON.parse(localStorage.getItem("fiche-vocab-v1")||"[]"); if(Array.isArray(vv)) vocab=vv.join(", "); }catch(e){}
+    return fixed.concat(mats).join(", ") + (vocab ? ", "+vocab : "");
+  }
+  function matLabels(){
+    return [].slice.call(document.querySelectorAll("#matGroups label.chk")).map(function(l){
+      var cb=l.querySelector("input[type=checkbox]"); return {label:l.textContent.replace("✕","").trim(), cb:cb};
+    }).filter(function(x){return x.cb;});
+  }
+  async function extract(transcript){
+    var labels=matLabels().map(function(x){return x.label;});
+    var prompt="Tu remplis une fiche d'intervention de chirurgie dentaire a partir d'une dictee. "
+      +"Reponds UNIQUEMENT par un objet JSON, sans texte autour.\n\n"
+      +"Dictee : \""+transcript.replace(/"/g,"'")+"\"\n\n"
+      +"Elements de MATERIEL disponibles (tu ne peux cocher QUE ceux-ci, par leur libelle EXACT) :\n"+JSON.stringify(labels)+"\n\n"
+      +"Schema exact : {\"avulsion\":\"oui\"|\"non\"|null, \"prf_rouge\":<entier|null>, \"prf_blanc\":<entier|null>, \"materiel\":[<libelles EXACTS coches>], \"description\":\"<le geste operatoire dicte, phrase clinique>\"}\n"
+      +"Regles : n'invente rien. \"materiel\" ne contient QUE des libelles de la liste. Un produit dicte absent de la liste est ignore. Si une info n'est pas dictee, mets null (ou [] / '').";
+    var r=await fetch(SB_URL+"/functions/v1/generate-document",{method:"POST",headers:{"Content-Type":"application/json","apikey":SB_KEY,"Authorization":"Bearer "+token()},body:JSON.stringify({prompt:prompt,consultationId:null,document:{document_type:"fiche_intervention_extraction",title:"Fiche intervention"}})});
+    var d=await r.json();
+    if(!r.ok) throw new Error(d.error||"Extraction impossible");
+    var txt=String(d.output_text||d.text||"");
+    var m=txt.indexOf("{"), n=txt.lastIndexOf("}");
+    return JSON.parse(txt.slice(m,n+1));
+  }
+  function applyExtraction(o){
+    function setVal(id,v){ var el=document.getElementById(id); if(el && v!=null){ el.value=v; el.dispatchEvent(new Event("input",{bubbles:true})); } }
+    function chk(id,v){ var el=document.getElementById(id); if(el){ el.checked=!!v; el.dispatchEvent(new Event("change",{bubbles:true})); } }
+    /* la description est désormais insérée en amont (texte dicté brut), on ne double pas ici */
+    if(o.avulsion==="oui"){ chk("avul_oui",true); chk("avul_non",false); }
+    else if(o.avulsion==="non"){ chk("avul_non",true); chk("avul_oui",false); }
+    if(o.prf_rouge!=null){ setVal("prf_rouge_n",String(o.prf_rouge)); chk("prf_rouge", Number(o.prf_rouge)>0); }
+    if(o.prf_blanc!=null){ setVal("prf_blanc_n",String(o.prf_blanc)); chk("prf_blanc", Number(o.prf_blanc)>0); }
+    var checked=0;
+    if(Array.isArray(o.materiel)){
+      var items=matLabels();
+      o.materiel.forEach(function(lab){
+        var target=items.find(function(x){return norm(x.label)===norm(lab);}) || items.find(function(x){return norm(x.label).indexOf(norm(lab))>=0 || norm(lab).indexOf(norm(x.label))>=0;});
+        if(target){ target.cb.checked=true; target.cb.dispatchEvent(new Event("change",{bubbles:true})); checked++; }
+      });
+    }
+    return checked;
+  }
+
+  var rec=null, chunks=[], recording=false;
+  function withTimeout(p, ms){ return Promise.race([p, new Promise(function(_,rej){ setTimeout(function(){ rej({name:"TimeoutError"}); }, ms); })]); }
+  async function toggleRecord(btn){
+    if(recording){ rec && rec.stop(); return; }
+    setMsg("① Démarrage… (v5.9)");                       // preuve immédiate que le clic est pris
+    btn.textContent="⏳ Préparation…";
+    if(!navigator.mediaDevices || !window.MediaRecorder){ setMsg("Ce navigateur ne gère pas le micro. Ouvrez la fiche dans Chrome ou Edge.",true); btn.textContent="🎤 Dicter la fiche"; return; }
+    // Micro D'ABORD, tant que le clic est "frais" (sinon le navigateur bloque
+    // l'acces micro apres la fenetre de connexion) :
+    setMsg("② Accès au micro… autorisez si une fenêtre le demande.");
+    var stream;
+    try{ stream=await withTimeout(navigator.mediaDevices.getUserMedia({audio:true}), 15000); }
+    catch(e){
+      btn.textContent="🎤 Dicter la fiche";
+      var n=(e&&e.name)||"";
+      var m;
+      if(n==="TimeoutError")
+        m="Le micro n'a pas répondu en 15 s (aucune autorisation reçue). Cliquez sur le 🎤/🔒 dans la barre d'adresse et choisissez « Toujours autoriser », branchez un micro, puis réessayez.";
+      else if(n==="NotFoundError"||n==="DevicesNotFoundError"||n==="OverconstrainedError")
+        m="Aucun micro détecté sur ce poste. Branchez un micro (casque ou micro USB) puis réessayez.";
+      else if(n==="NotAllowedError"||n==="SecurityError"||n==="PermissionDeniedError")
+        m="Micro bloqué. 1) Cliquez sur le 🎤/🔒 à gauche de l'adresse et autorisez le micro. 2) Windows : Paramètres › Confidentialité › Microphone › activez « autoriser les applications de bureau ».";
+      else if(n==="NotReadableError"||n==="TrackStartError")
+        m="Micro occupé par une autre application (Teams, Zoom, dictée…). Fermez-la puis réessayez.";
+      else
+        m="Micro indisponible ("+(n||"erreur inconnue")+"). Utilisez Chrome ou Edge et vérifiez qu'un micro est branché.";
+      setMsg(m,true); return;
+    }
+    setMsg("③ Micro OK.");
+    // Connexion si besoin :
+    if(!token()){ setMsg("④ Connexion ADIA nécessaire pour la dictée…"); var ok=await login(); if(!ok){ stream.getTracks().forEach(function(t){t.stop();}); btn.textContent="🎤 Dicter la fiche"; setMsg("Connexion annulée : la dictée nécessite votre compte ADIA.",true); return; } }
+    chunks=[]; rec=new MediaRecorder(stream);
+    rec.ondataavailable=function(e){ if(e.data.size) chunks.push(e.data); };
+    rec.onstop=async function(){
+      stream.getTracks().forEach(function(t){t.stop();});
+      recording=false; btn.textContent="🎤 Dicter la fiche"; btn.style.background="#1a3e6f";
+      var blob=new Blob(chunks,{type: rec.mimeType||"audio/webm"});
+      if(blob.size<1200){ setMsg("Rien n'a été capté (micro muet ou dictée trop courte). Vérifiez que le BON micro est actif dans Windows, puis reparlez plus longtemps.",true); return; }
+      var td;
+      try{
+        setMsg("⑤ Transcription en cours…");
+        var form=new FormData(); form.append("audio",blob,"dictee.webm");
+        form.append("glossary", ficheGlossary());
+        form.append("context", "Dictée opératoire télégraphique en implantologie : numéros de dents (ex. 14, 26, 36), abréviations (exp = exposition, BPRF, CPRI, ALV, WYART), systèmes d'implant (actif, parallèle). Restituer ces termes tels quels.");
+        var tr=await fetch(SB_URL+"/functions/v1/transcribe-audio",{method:"POST",headers:{"apikey":SB_KEY,"Authorization":"Bearer "+token()},body:form});
+        if(tr.status===401){ setToken(""); setMsg("Connexion ADIA expirée — recliquez « Dicter la fiche » pour vous reconnecter.",true); return; }
+        td=await tr.json().catch(function(){ return {}; });
+        if(!tr.ok){ throw new Error((td && td.error) || ("Transcription refusée (HTTP "+tr.status+")")); }
+        if(!td.text || !td.text.trim()){ setMsg("Transcription revenue vide — parlez plus fort/plus près du micro, puis réessayez.",true); return; }
+      }catch(err){
+        var m=String((err && err.message) || err);
+        if(/Failed to fetch|NetworkError|load failed/i.test(m)) setMsg("Pas d'accès internet pour la transcription. Vérifiez la connexion puis réessayez.",true);
+        else setMsg("Transcription : "+m,true);
+        return;
+      }
+      // On écrit TOUJOURS ce qui a été dicté dans « Intervention » (même si l'analyse échoue) :
+      var d=document.getElementById("description");
+      if(d){ d.value=(d.value ? d.value+"\n" : "")+td.text.trim(); d.dispatchEvent(new Event("input",{bubbles:true})); }
+      setMsg("⑥ Analyse (matériel, PRF, avulsion)…");
+      var n=0;
+      try{ var o=await extract(td.text); n=applyExtraction(o); }
+      catch(e){ /* l'analyse est un bonus : le texte dicté est déjà écrit */ }
+      setMsg("✓ Dicté : « "+td.text.trim().slice(0,90)+(td.text.trim().length>90?"…":"")+" »"+(n?(" — "+n+" élément(s) coché(s)"):" — texte inséré dans « Intervention »."));
+    };
+    rec.start(); recording=true; btn.textContent="⏹️ Terminer la dictée"; btn.style.background="#b0243a";
+    setMsg("🔴 Enregistrement en cours — parlez, puis recliquez pour terminer.");
+  }
+
+  function addUI(){
+    if(document.getElementById("iaDicteeBtn")) return true;
+    var bar=document.querySelector(".bar"); if(!bar) return false;
+    // Masquer TOUTE l'ancienne dictée (moteur navigateur, imprécis et redondant) :
+    ["micFab","mic","live","cmdlog"].forEach(function(id){ var e=document.getElementById(id); if(e) e.style.display="none"; });
+    var dm=document.getElementById("descMic"); if(dm && dm.parentNode) dm.parentNode.style.display="none";
+    [].forEach.call(document.querySelectorAll("details"), function(d){ var sm=d.querySelector("summary"); if(sm && /commandes vocales/i.test(sm.textContent)) d.style.display="none"; });
+    // Bouton IA unique, en HAUT et en grand :
+    var wrap=document.createElement("div"); wrap.style.cssText="margin:0 0 6px";
+    var cab=window.adiaModeCabinet && window.adiaModeCabinet();
+    var b=document.createElement("button"); b.id="iaDicteeBtn"; b.type="button";
+    b.textContent="🎤 Dicter la fiche";
+    b.style.cssText="width:100%;padding:16px;font:700 19px/1 sans-serif;color:#fff;background:#1a3e6f;border:none;border-radius:12px;cursor:pointer";
+    b.title="Dictée naturelle : l'IA remplit la fiche (connexion ADIA + internet)";
+    b.addEventListener("click", function(){ if(window.adiaModeCabinet && window.adiaModeCabinet()) return; toggleRecord(b); });
+    var msg=document.createElement("div"); msg.id="iaDicteeMsg"; msg.style.cssText="font-size:14px;font-weight:600;color:#1a7a3a;margin-top:8px;min-height:20px;padding:6px 8px;border-radius:8px;background:#eef3fa";
+    if(cab){
+      var av=document.createElement("div"); av.id="modeCabinet";
+      av.style.cssText="font-size:13.5px;line-height:1.4;color:#334;background:#eef3fa;border:1px solid #cfdbec;border-radius:10px;padding:9px 11px";
+      av.innerHTML="🔒 <b>Mode cabinet</b> — aucune donnée du patient ne quitte le cabinet. La dictée IA est coupée : saisissez au clavier, ou utilisez la dictée intégrée de l’ordinateur dans chaque champ. <a href='#' id='reactIA' style='color:#1a3e6f'>Réactiver l’IA</a>";
+      wrap.appendChild(av);
+      setTimeout(function(){ var a=document.getElementById("reactIA"); if(a) a.addEventListener("click",function(e){ e.preventDefault(); window.adiaReactiverIA(); }); },0);
+    } else {
+      wrap.appendChild(b); wrap.appendChild(msg);
+      var rt=document.createElement("div"); rt.style.cssText="font-size:12.5px;color:#b0243a;margin-top:4px";
+      rt.innerHTML="⚠️ Fonctions IA externes actives : la voix est envoyée hors du cabinet. <a href='#' id='retourCab' style='color:#b0243a'>Revenir au mode cabinet</a>";
+      wrap.appendChild(rt);
+      setTimeout(function(){ var a=document.getElementById("retourCab"); if(a) a.addEventListener("click",function(e){ e.preventDefault(); window.adiaRetourCabinet(); }); },0);
+    }
+    // Bouton dictée APRÈS les coordonnées patient (pour dicter tout ce qui suit) :
+    var ident=document.querySelector(".ident");
+    if(ident && ident.parentNode){ ident.parentNode.insertBefore(wrap, ident.nextSibling); }
+    else { bar.insertBefore(wrap, bar.firstChild); }
+    // Réorganiser : Réinitialiser reste en haut, les enregistrements vont EN BAS.
+    try{
+      var page=document.querySelector(".page");
+      var btns=document.querySelector(".btns");
+      var reset=document.getElementById("reset");
+      if(page && btns){
+        if(reset) bar.appendChild(reset);   // Réinitialiser -> haut
+        page.appendChild(btns);             // Enregistrer / PDF / Imprimer -> bas
+        var cfw=document.getElementById("changeFolderWrap");
+        if(cfw) page.appendChild(cfw);      // indicateur « dossier d'enregistrement » -> juste sous les boutons
+      }
+    }catch(e){}
+    return true;
+  }
+  var iv=setInterval(function(){ if(addUI()) clearInterval(iv); }, 400);
+  setTimeout(function(){ clearInterval(iv); }, 12000);
+})();
+</script>
+
+<script id="adia-dossier-serveur">
+/* Chaque patient a SA fiche, rangée dans son dossier du serveur : docpatient/<n° de fiche clinique>/.
+   - Enregistrement automatique à chaque modification (plus rien ne se perd en changeant de patient).
+   - Changer de n° ouvre la fiche de ce patient, ou une fiche vierge s'il n'en a pas encore.
+   - Un raccourci « Ouvrir la fiche d'intervention » est déposé dans le dossier : double-clic = la fiche du patient.
+   Écriture : accès direct au dossier docpatient (choisi une fois par poste), sinon passerelle ADIA. Rien ne sort du cabinet. */
+(function(){
+  "use strict";
+  var FICHIER="ADIA-fiche-omnipratique.json", PREC="ADIA-fiche-omnipratique.precedente.json", RACC="Ouvrir la fiche omnipratique.html";
+  var KEYS=["omni-fiche-v1","omni-fiche-implants-v1","omni-fiche-customs-v1","omni-fiche-actes-v1"];
+  var PROP="adia-srv-omni-proprietaire", URLF="https://jbal2534.github.io/adia-fiches/fiche-omnipratique.html";
+  var box=document.getElementById("dossierSrv"), elDos=document.getElementById("dossier");
+  if(!box || !elDos) return;
+  var FS=!!window.showDirectoryPicker;
+  function num(){ return (elDos.value||"").trim(); }
+  function esc(t){ return String(t).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];}); }
+  function fmt(iso){ try{ var d=new Date(iso); return d.toLocaleDateString("fr-FR")+" à "+d.toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"}); }catch(e){ return iso; } }
+  function vu(n){ return sessionStorage.getItem("adia-srv-omni-"+n)||""; }
+  function setVu(n,v){ sessionStorage.setItem("adia-srv-omni-"+n, v); }
+  function proprio(){ return localStorage.getItem(PROP)||""; }
+  function setProprio(n){ localStorage.setItem(PROP, n); }
+  function snap(){ var d={}; KEYS.forEach(function(k){ d[k]=localStorage.getItem(k); }); return d; }
+  function poser(d){ KEYS.forEach(function(k){ var v=d&&d[k]; if(v==null) localStorage.removeItem(k); else localStorage.setItem(k,v); }); }
+  function dire(t, err){ var m=document.getElementById("srvMsg"); if(!m) return; m.textContent=t; m.style.color=err?"#b0243a":"#1a7a3a"; }
+
+  /* ---- dossier « docpatient », mémorisé sur ce poste ---- */
+  function idb(){ return new Promise(function(res,rej){ var r=indexedDB.open("fiche-fs",1); r.onupgradeneeded=function(){ r.result.createObjectStore("h"); }; r.onsuccess=function(){res(r.result);}; r.onerror=function(){rej(r.error);}; }); }
+  function getRoot(){ if(window.__adiaTestRoot) return Promise.resolve(window.__adiaTestRoot); return idb().then(function(db){ return new Promise(function(res){ var t=db.transaction("h","readonly").objectStore("h").get("root"); t.onsuccess=function(){res(t.result||null);}; t.onerror=function(){res(null);}; }); }); }
+  function putRoot(h){ return idb().then(function(db){ return new Promise(function(res){ var t=db.transaction("h","readwrite").objectStore("h").put(h,"root"); t.onsuccess=function(){res();}; t.onerror=function(){res();}; }); }); }
+  async function perm(h, ask){ var o={mode:"readwrite"}; var p=await h.queryPermission(o); if(p==="granted") return true; if(!ask) return false; return (await h.requestPermission(o))==="granted"; }
+  async function root(ask){ if(!FS) return null; var h=await getRoot(); if(!h) return null; return (await perm(h,ask)) ? h : null; }
+  async function sous(r, n, creer){ try{ return await r.getDirectoryHandle(n, {create:!!creer}); }catch(e){ return null; } }
+  async function lire(n){
+    var r=await root(false); if(!r) return {acces:false};
+    var d=await sous(r,n,false); if(!d) return {acces:true, o:null};
+    try{ return {acces:true, o:JSON.parse(await (await (await d.getFileHandle(FICHIER)).getFile()).text())}; }catch(e){ return {acces:true, o:null}; }
+  }
+
+  async function etat(){
+    if(!FS){ box.innerHTML="🗄️ La fiche s\u2019enregistre dans le dossier du patient par la passerelle ADIA. <span id='srvMsg'></span><div id='srvOffre'></div>"; return; }
+    var h=await getRoot(), ok=h && await perm(h,false);
+    box.innerHTML=(h
+      ? "🗄️ Dossiers patients : « "+esc(h.name)+" »"+(ok?" — enregistrement automatique":" — <a href='#' id='srvAuth'>autoriser l\u2019accès</a>")+" · <a href='#' id='srvChg'>changer</a>"
+      : "🗄️ Pour que chaque patient garde sa fiche : <a href='#' id='srvChg'>choisir le dossier « docpatient » du serveur</a> (une seule fois sur ce poste).")
+      +" <span id='srvMsg'></span><div id='srvOffre'></div>";
+    var a=document.getElementById("srvChg");
+    if(a) a.addEventListener("click", async function(e){
+      e.preventDefault();
+      try{ var nh=await window.showDirectoryPicker({mode:"readwrite", id:"adia-docpatient"}); await putRoot(nh); await etat(); await ouvrir(num(), false); }
+      catch(err){ if(!(err&&err.name==="AbortError")) dire("Choix du dossier impossible : "+(err&&err.message||err), true); }
+    });
+    var b=document.getElementById("srvAuth");
+    if(b) b.addEventListener("click", async function(e){ e.preventDefault(); var r=await root(true); await etat(); if(r) await ouvrir(num(), false); });
+  }
+
+  /* ---- écriture dans le dossier du patient ---- */
+  var bloque=false;   // conflit en attente de décision
+  async function ecrire(n, donnees, force){
+    if(!n || bloque) return false;
+    var o={type:"fiche-omnipratique", version:1, dossier:n, enregistre:new Date().toISOString(), donnees:donnees}, txt=JSON.stringify(o);
+    var r=await root(false);
+    if(r){
+      try{
+        var d=await sous(r, n, true), prec=null;
+        try{ prec=await (await d.getFileHandle(FICHIER)).getFile(); }catch(e){}
+        if(prec){
+          var ancien=await prec.text(), po={}; try{ po=JSON.parse(ancien); }catch(e){}
+          if(!force && po.enregistre && vu(n) && po.enregistre>vu(n)){ conflit(n, po); return false; }
+          if(!vu(n) || vu(n)!==po.enregistre){ var bk=await (await d.getFileHandle(PREC,{create:true})).createWritable(); await bk.write(ancien); await bk.close(); }
+        } else {
+          try{ var rw=await (await d.getFileHandle(RACC,{create:true})).createWritable();
+            await rw.write("<!DOCTYPE html><meta charset='utf-8'><title>Fiche d\u2019intervention – "+esc(n)+"</title><meta http-equiv='refresh' content='0;url="+URLF+"?dossier="+encodeURIComponent(n)+"'><p>Ouverture de la fiche du patient n° "+esc(n)+"… <a href='"+URLF+"?dossier="+encodeURIComponent(n)+"'>cliquer ici si rien ne se passe</a></p>"); await rw.close(); }catch(e){}
+        }
+        var w=await (await d.getFileHandle(FICHIER,{create:true})).createWritable(); await w.write(txt); await w.close();
+        setVu(n, o.enregistre); return true;
+      }catch(e){ /* sinon : passerelle */ }
+    }
+    var hosts=["http://127.0.0.1:8765/classer-fiche","http://localhost:8765/classer-fiche"];
+    for(var i=0;i<hosts.length;i++){
+      try{
+        var res=await fetch(hosts[i]+"?folder_id="+encodeURIComponent(n)+"&filename="+encodeURIComponent(FICHIER),{method:"POST",headers:{"Content-Type":"application/json"},body:new Blob([txt],{type:"application/json"})});
+        if(res.ok){ setVu(n, o.enregistre); return true; }
+      }catch(e){}
+    }
+    return false;
+  }
+
+  function conflit(n, po){
+    bloque=true;
+    var off=document.getElementById("srvOffre"); if(!off) return;
+    off.innerHTML="<div style='margin-top:6px;padding:8px 10px;border:1px solid #e3a0a8;background:#fdf0f1;border-radius:8px'>⚠️ La fiche du dossier n° "+esc(n)+" a été modifiée sur un autre poste le "+esc(fmt(po.enregistre))+". L\u2019enregistrement automatique est suspendu."
+      +" <button type='button' id='cfOuvrir' style='margin:4px 4px 0 6px;padding:6px 10px;border-radius:7px;border:1px solid #1a3e6f;background:#1a3e6f;color:#fff;font-weight:700;cursor:pointer'>Afficher l\u2019autre version</button>"
+      +"<button type='button' id='cfGarder' style='margin-top:4px;padding:6px 10px;border-radius:7px;border:1px solid #b0243a;background:#fff;color:#b0243a;cursor:pointer'>Garder la mienne</button></div>";
+    document.getElementById("cfOuvrir").addEventListener("click", function(){ poser(po.donnees); setVu(n, po.enregistre); setProprio(n); location.reload(); });
+    document.getElementById("cfGarder").addEventListener("click", async function(){ bloque=false; off.innerHTML=""; if(await ecrire(n, snap(), true)){ dernier=JSON.stringify(snap()); dire("✓ Votre version est enregistrée ; l\u2019autre est gardée en copie dans le dossier."); } });
+  }
+
+  /* ---- enregistrement automatique ---- */
+  var dernier=JSON.stringify(snap()), propre=snap(), enCours=false;
+  setInterval(async function(){
+    var n=num(), cur=JSON.stringify(snap());
+    if(!n || n!==proprio()) return;             // changement de patient en cours : géré par ouvrir()
+    propre=snap();
+    if(cur===dernier || enCours || bloque) return;
+    enCours=true;
+    var ok=await ecrire(n, JSON.parse(cur), false);
+    enCours=false;
+    if(ok){ dernier=cur; dire("✓ Enregistré dans le dossier n° "+n+" à "+new Date().toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"})+"."); }
+    else if(!bloque){ dire("⚠️ Pas d\u2019accès au dossier du patient : choisissez « docpatient » ou lancez la passerelle ADIA.", true); }
+  }, 2500);
+
+  /* ---- ouvrir la fiche d'un patient (ou une fiche vierge) ---- */
+  async function ouvrir(n, depuisChangement){
+    var off=document.getElementById("srvOffre");
+    if(!n){ return; }
+    var ancien=proprio();
+    if(depuisChangement && ancien && ancien!==n){
+      // 1. on range la fiche du patient précédent dans SON dossier
+      if(JSON.stringify(propre)!==dernier || !vu(ancien)){
+        var sauve=await ecrire(ancien, propre, false);
+        if(!sauve && !confirm("La fiche du patient n° "+ancien+" n\u2019a pas pu être enregistrée dans son dossier. Passer quand même au patient n° "+n+" ? (elle serait perdue)")){ elDos.value=ancien; return; }
+      }
+    }
+    var lu=await lire(n);
+    if(lu.o){
+      if(n===ancien && vu(n)===lu.o.enregistre){ dire("✓ Fiche du dossier n° "+n+" à jour."); return; }
+      if(n===ancien && !depuisChangement){
+        // même patient, mais une version plus récente existe ailleurs
+        if(lu.o.enregistre>(vu(n)||"")){ conflit(n, lu.o); }
+        return;
+      }
+      poser(lu.o.donnees); setVu(n, lu.o.enregistre); setProprio(n); location.reload(); return;
+    }
+    if(depuisChangement && ancien && ancien!==n){
+      // nouveau patient sans fiche : fiche vierge, en gardant l'identité qui vient d'être saisie ou importée
+      // l'identité n'est gardée que si elle vient d'être importée pour CE patient ; une saisie manuelle du n° repart d'une fiche vide
+      var imp=!!window.__adiaIdentImportee; window.__adiaIdentImportee=false;
+      var garde={nom:"", prenom:"", dossier:n};
+      if(imp){ var en=document.getElementById("nom"), ep=document.getElementById("prenom"); garde.nom=en?en.value:""; garde.prenom=ep?ep.value:""; }
+      localStorage.setItem(KEYS[0], JSON.stringify(garde)); localStorage.setItem(KEYS[1],"[]"); localStorage.setItem(KEYS[2],"[]"); localStorage.setItem(KEYS[3],"[]");
+      setProprio(n); location.reload(); return;
+    }
+    if(!ancien) setProprio(n);
+    if(lu.acces) dire("Nouvelle fiche pour le dossier n° "+n+" : elle s\u2019enregistrera automatiquement.");
+  }
+
+  elDos.addEventListener("change", function(){ ouvrir(num(), true); });
+
+  /* ---- démarrage ---- */
+  (async function(){
+    await etat();
+    var q=new URLSearchParams(location.search).get("dossier");
+    if(q && q.trim() && q.trim()!==num()){
+      if(!proprio() && num()) setProprio(num());
+      elDos.value=q.trim(); elDos.dispatchEvent(new Event("input",{bubbles:true})); await ouvrir(q.trim(), true); return;
+    }
+    if(!proprio() && num()) setProprio(num());
+    await ouvrir(num(), false);
+  })();
+})();
+</script>
+</body>
+</html>

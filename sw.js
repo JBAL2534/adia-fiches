@@ -3,13 +3,15 @@
    la version en ligne (donc la plus récente) ; sans internet, ou si le réseau ne
    répond pas en 3 secondes, on sert la copie gardée. Aucune donnée de patient ici :
    seuls les fichiers de l'application sont concernés. */
-var CACHE="adia-fiches-v1";
+var CACHE="adia-fiches-v3";
 var FICHIERS=[
   "./","index.html",
   "fiche-intervention.html","plan-de-traitement.html","liaison-prothese.html",
   "passeport-implantaire.html","tracabilite.html",
+  "fiche-omnipratique.html","plan-omnipratique.html","labo-omnipratique.html",
+  "consignes-omnipratique.html","tracabilite-omnipratique.html",
   "fiches-commun.js","fiches-nav.js","references.js",
-  "manifest.webmanifest","plan.webmanifest",
+  "manifest.webmanifest","plan.webmanifest","omni.webmanifest","plan-omni.webmanifest",
   "icon-192.png","icon-512.png","logo-cds.png"
 ];
 
@@ -30,7 +32,8 @@ self.addEventListener("fetch", function(e){
   if(url.origin!==self.location.origin) return;       // passerelle locale, serveurs externes : on ne touche à rien
 
   var copie=function(){ return caches.match(req,{ignoreSearch:true}); };
-  var reseau=fetch(req).then(function(rep){
+  // « no-cache » : on redemande toujours au serveur si la page a changé, sans se fier à la mémoire du navigateur
+  var reseau=fetch(req.url,{cache:"no-cache",credentials:"same-origin"}).then(function(rep){
     if(rep && rep.ok){ var double=rep.clone(); caches.open(CACHE).then(function(c){ c.put(url.origin+url.pathname, double); }); }
     return rep;
   });

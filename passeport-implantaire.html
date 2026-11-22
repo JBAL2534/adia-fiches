@@ -112,7 +112,7 @@
 
   function render(){
     if(!data || (!data.nom && !(data.implants||[]).length)){
-      doc.innerHTML='<div class="empty">Aucune intervention à reprendre.<br>Ouvrez la <a href="fiche-intervention.html">fiche d\u2019intervention</a>, remplissez-la, puis cliquez sur « 🛂 Passeport ».</div>';
+      doc.innerHTML='<div class="empty">Aucune intervention à reprendre.<br>Ouvrez la <a href="'+(F.OMNI?"fiche-omnipratique.html":"fiche-intervention.html")+'">fiche d\u2019intervention</a>, remplissez-la, puis cliquez sur « 🛂 Passeport ».</div>';
       return;
     }
     var d=F.parseDateFr(data.date), dateTxt=d?F.fmtJourCourt(d):(data.date||""), dateCourt=d?F.fmtCourt(d):(data.date||"");

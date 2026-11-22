@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Consignes au patient – v1.0</title>
+<meta name="theme-color" content="#173a63">
+<link rel="icon" href="icon-192.png">
+<script src="fiches-commun.js"></script>
+<script src="fiches-nav.js" defer></script>
+<style>
+  :root{ --bleu:#173a63; --gris:#555; }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;color:#111;background:#eceff3;line-height:1.45}
+  .page{max-width:860px;margin:0 auto;background:#fff;padding:18px 20px 40px}
+
+  .bar{background:#fff;padding:6px 0 10px;border-bottom:1px solid #ddd;margin-bottom:14px}
+  .btns{display:flex;gap:8px;flex-wrap:wrap}
+  .btns button{flex:1 1 auto;padding:11px 10px;font-size:15px;border:1px solid #ccc;background:#f4f6f9;border-radius:9px;cursor:pointer;min-width:120px}
+  .btns button.main{background:var(--bleu);color:#fff;border-color:var(--bleu);font-weight:700}
+  .btns button.green{background:#1a7a3a;color:#fff;border-color:#1a7a3a;font-weight:700}
+  .live{margin-top:8px;min-height:18px;font-size:13.5px;color:var(--gris);font-style:italic}
+  .hint{font-size:12.5px;color:#666;margin-top:6px}
+  .choix{display:flex;flex-wrap:wrap;gap:6px 8px;margin-top:10px}
+  .choix label{display:inline-flex;align-items:center;gap:7px;min-height:40px;padding:0 13px;border:1.5px solid #cbd2dc;border-radius:999px;font-size:14px;cursor:pointer;user-select:none}
+  .choix label:has(input:checked){border-color:var(--bleu);background:#eaf1fa;font-weight:600;color:var(--bleu)}
+  .choix input{margin:0;width:16px;height:16px}
+
+  .doc{font-size:15px}
+  .entete{display:flex;gap:12px;align-items:center;border-bottom:2px solid var(--bleu);padding-bottom:8px;margin-bottom:12px}
+  .entete img{max-height:56px;max-width:180px}
+  .entete-nom{font-weight:800;font-size:17px;color:var(--bleu)}
+  .entete-ligne{font-size:12px;color:#444}
+  h1{font-size:21px;color:var(--bleu);margin:8px 0 2px}
+  .pour{font-size:14px;color:#333;margin:0 0 12px}
+  h3{font-size:15px;color:#fff;background:var(--bleu);margin:16px 0 0;padding:6px 10px;border-radius:6px 6px 0 0}
+  ul{margin:0;padding:8px 12px 8px 30px;border:1px solid #c9d3e2;border-top:none;border-radius:0 0 6px 6px}
+  li{margin:3px 0;outline:none}
+  li:focus,.ed:focus{background:#fff8d6}
+  .ed{outline:none;border-bottom:1px dotted #999;padding:0 2px}
+  .urgence{margin-top:18px;border:1.5px solid #b0243a;border-radius:6px;padding:9px 12px;background:#fdf1f2}
+  .urgence b{color:#b0243a}
+  .bloc{break-inside:avoid}
+  .empty{padding:30px 10px;text-align:center;color:#666;font-size:15px}
+  .empty a{color:var(--bleu)}
+
+  @media print{
+    body{background:#fff}
+    .page{max-width:none;padding:0}
+    .bar,.noprint{display:none !important}
+    .ed{border-bottom:none}
+    h3,.urgence{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    @page{size:A4;margin:14mm}
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="bar noprint">
+    <div class="btns">
+      <button id="classerAdia" class="green">📁 Classer dans le dossier du patient (ADIA)</button>
+      <button id="savefolder" class="main" style="display:none">💾 Word dans le dossier</button>
+      <button id="word">📝 Word</button>
+      <button id="print">🖨️ Imprimer</button>
+      <button id="reload" title="Recharger depuis la fiche d'intervention">↻ Depuis la fiche</button>
+      <button id="origine" title="Revient aux textes d'origine pour toutes les rubriques">↺ Textes d'origine</button>
+    </div>
+    <div id="live" class="live"></div>
+    <div class="hint">Les rubriques suivent les actes de la fiche d'intervention ; cochez ou décochez pour ce patient. <b>Vos corrections de texte sont retenues pour les patients suivants</b> : relisez chaque rubrique une fois, elle devient la vôtre.</div>
+    <div id="choix" class="choix"></div>
+  </div>
+
+  <div id="doc" class="doc"></div>
+
+</div>
+
+<script>
+(function(){
+  "use strict";
+  var F=window.ADIA_FICHES, esc=F.esc;
+  var MODELES="omni-consignes-modeles-v1", STORE="omni-consignes-v1";
+  var doc=document.getElementById("doc"), choix=document.getElementById("choix");
+  function texte(el){ return el.innerText!=null ? el.innerText : el.textContent; }
+  var data=F.load();
+
+  /* Textes d'origine : un point de départ à relire et à adapter par le praticien. */
+  var RUBRIQUES=[
+    {id:"anesthesie", court:"Anesthésie", titre:"Après l'anesthésie", quand:function(){ return true; }, lignes:[
+      "La zone reste endormie pendant 2 à 4 heures.",
+      "Ne mangez pas tant que la sensibilité n'est pas revenue : vous pourriez vous mordre la lèvre, la joue ou la langue sans vous en rendre compte.",
+      "Évitez les boissons chaudes pendant ce temps."
+    ]},
+    {id:"chirurgie", court:"Chirurgie", titre:"Après une extraction ou une chirurgie", quand:function(d){ return d.Chirurgie||d.Implantologie; }, lignes:[
+      "Mordez sur la compresse pendant 20 à 30 minutes. Si cela saigne encore, placez une compresse propre et mordez à nouveau 20 minutes.",
+      "Ne crachez pas et ne faites pas de bain de bouche pendant les premières 24 heures.",
+      "Le premier jour, appliquez une poche de froid sur la joue, par périodes de 10 à 15 minutes.",
+      "Mangez froid ou tiède, et mou, pendant 48 heures. Évitez l'alcool.",
+      "Ne fumez pas pendant au moins 48 heures : le tabac retarde la cicatrisation.",
+      "Brossez les autres dents normalement dès le soir. Reprenez un brossage doux de la zone le lendemain.",
+      "Dormez la tête un peu surélevée la première nuit. Pas de sport pendant 48 heures.",
+      "Un gonflement et une gêne sont habituels pendant 2 à 3 jours.",
+      "Prenez les médicaments prescrits en suivant l'ordonnance."
+    ]},
+    {id:"implant", court:"Implant", titre:"Après la pose d'un implant", quand:function(d){ return d.Implantologie; }, lignes:[
+      "Ne touchez pas la zone avec la langue ou les doigts, et ne tirez pas sur la lèvre pour regarder.",
+      "Ne portez pas votre appareil amovible sur la zone opérée sans notre accord.",
+      "Mastiquez de l'autre côté jusqu'au rendez-vous de contrôle.",
+      "Les fils seront retirés lors du rendez-vous de contrôle."
+    ]},
+    {id:"endodontie", court:"Endodontie", titre:"Après un traitement de racine", quand:function(d){ return d.Endodontie; }, lignes:[
+      "Une sensibilité à la pression ou à la mastication est possible pendant quelques jours.",
+      "Évitez de mâcher des aliments durs sur cette dent tant qu'elle n'est pas restaurée définitivement.",
+      "Si le pansement provisoire se casse ou tombe, appelez le cabinet.",
+      "La dent doit être restaurée définitivement sans tarder : gardez bien le rendez-vous suivant.",
+      "Prenez les médicaments prescrits en suivant l'ordonnance."
+    ]},
+    {id:"soins", court:"Soins", titre:"Après un soin (composite, inlay-onlay)", quand:function(d){ return d["Soins conservateurs"]; }, lignes:[
+      "Vous pouvez manger dès que l'anesthésie a disparu.",
+      "Une sensibilité au chaud, au froid ou à la pression est possible pendant quelques jours.",
+      "Si la dent vous semble trop haute quand vous serrez les dents, appelez le cabinet pour un réglage."
+    ]},
+    {id:"prothese", court:"Prothèse", titre:"Après une étape de prothèse", quand:function(d){ return d["Prothèse"]; }, lignes:[
+      "Avec une dent provisoire : évitez les aliments durs ou collants de ce côté.",
+      "Avec une dent provisoire : passez le fil dentaire en le retirant sur le côté, sans le remonter.",
+      "Si la dent provisoire se décolle, gardez-la et appelez le cabinet.",
+      "Après la pose de la prothèse définitive : évitez les aliments durs ou collants le premier jour.",
+      "Une gêne est normale pendant quelques jours, le temps de vous habituer.",
+      "Si la prothèse blesse ou gêne en serrant les dents, appelez le cabinet : ne la retouchez pas vous-même."
+    ]},
+    {id:"parodontie", court:"Parodontie", titre:"Après un détartrage ou un soin des gencives", quand:function(d){ return d.Parodontie; }, lignes:[
+      "Les dents peuvent être sensibles au froid pendant quelques jours.",
+      "Les gencives peuvent saigner légèrement pendant 24 à 48 heures.",
+      "Continuez le brossage, avec une brosse souple, et les brossettes comme nous vous l'avons montré.",
+      "Utilisez un bain de bouche seulement s'il vous a été prescrit.",
+      "Évitez le tabac.",
+      "Respectez les rendez-vous de suivi : ils font partie du traitement."
+    ]}
+  ];
+
+  function lire(k){ try{ return JSON.parse(localStorage.getItem(k)||"{}")||{}; }catch(e){ return {}; } }
+  function ecrire(k,o){ try{ localStorage.setItem(k, JSON.stringify(o)); }catch(e){} }
+  function saisies(){ return lire(STORE)[F.cle(data)]||{}; }
+  function lignesDe(r){ var m=lire(MODELES)[r.id]; return (Array.isArray(m) && m.length) ? m : r.lignes; }
+  function disciplines(){
+    var d={}; (data.actes||[]).forEach(function(a){ if(a.disc) d[a.disc]=1; });
+    if((data.implants||[]).length) d.Implantologie=1;
+    return d;
+  }
+  function retenue(r){ var s=saisies(); return ("r_"+r.id in s) ? !!s["r_"+r.id] : !!r.quand(disciplines()); }
+
+  function render(){
+    if(!data || (!data.nom && !(data.actes||[]).length && !(data.implants||[]).length)){
+      choix.innerHTML="";
+      doc.innerHTML='<div class="empty">Aucune intervention à reprendre.<br>Ouvrez la <a href="fiche-omnipratique.html">fiche d’intervention</a>, saisissez les actes, puis revenez ici.</div>';
+      return;
+    }
+    choix.innerHTML=RUBRIQUES.map(function(r){ return '<label><input type="checkbox" data-r="'+r.id+'"'+(retenue(r)?" checked":"")+'> '+esc(r.court)+'</label>'; }).join("");
+    var d=F.parseDateFr(data.date), e=F.entete(), s=saisies();
+    var h=F.enteteHtml();
+    h+='<h1>Vos consignes après le soin</h1>';
+    h+='<p class="pour">'+esc(((data.prenom||"")+" "+(data.nom||"").toUpperCase()).trim())+(d?' — soin du '+esc(F.fmtLong(d)):'')+'</p>';
+    RUBRIQUES.filter(retenue).forEach(function(r){
+      h+='<div class="bloc"><h3>'+esc(r.titre)+'</h3><ul data-r="'+r.id+'">'
+        +lignesDe(r).map(function(l){ return '<li contenteditable="true">'+esc(l)+'</li>'; }).join("")+'</ul></div>';
+    });
+    var alertes=(data.alertes||[]).join(", ");
+    if(/anticoag|antiagr|avk|aod/i.test(alertes)){
+      h+='<div class="bloc"><h3>Votre traitement anticoagulant</h3><ul data-r="anticoag">'
+        +(lire(MODELES).anticoag||["Ne modifiez pas votre traitement sans avis médical.","Si un saignement ne s'arrête pas après 20 minutes de compression, appelez le cabinet."]).map(function(l){ return '<li contenteditable="true">'+esc(l)+'</li>'; }).join("")+'</ul></div>';
+    }
+    var tel=("tel" in s)?s.tel:(e.telephone||"");
+    h+='<div class="urgence bloc"><b>Appelez le cabinet</b> en cas de saignement qui ne s’arrête pas, de douleur forte malgré le traitement, de fièvre ou de gonflement qui augmente après le 3<sup>e</sup> jour.'
+      +'<br>Cabinet : <span class="ed" contenteditable="true" data-id="tel">'+esc(tel)+'</span>'
+      +' — en dehors des horaires : <span class="ed" contenteditable="true" data-id="garde">'+esc(("garde" in s)?s.garde:"service de garde dentaire, ou le 15")+'</span>.</div>';
+    h+='<p class="pour" style="margin-top:14px">Prochain rendez-vous : <span class="ed" contenteditable="true" data-id="rdv">'+esc(s.rdv||"")+'</span></p>';
+    doc.innerHTML=h;
+  }
+
+  /* Une correction de texte devient le modèle du cabinet pour cette rubrique. */
+  doc.addEventListener("input", function(ev){
+    var ul=ev.target.closest("ul[data-r]");
+    if(ul){
+      var m=lire(MODELES); m[ul.getAttribute("data-r")]=[].map.call(ul.querySelectorAll("li"), function(li){ return texte(li).replace(/ /g," ").trim(); }).filter(Boolean);
+      ecrire(MODELES, m); return;
+    }
+    var el=ev.target.closest("[data-id]");
+    if(el && data){ var o=lire(STORE), k=F.cle(data); o[k]=o[k]||{}; o[k][el.getAttribute("data-id")]=texte(el).replace(/ /g," ").trim(); ecrire(STORE,o); }
+  });
+  choix.addEventListener("change", function(ev){
+    var c=ev.target; if(!c.matches("input[data-r]") || !data) return;
+    var o=lire(STORE), k=F.cle(data); o[k]=o[k]||{}; o[k]["r_"+c.getAttribute("data-r")]=c.checked; ecrire(STORE,o); render();
+  });
+
+  var bar=F.barre({
+    titre:function(){ return F.titreFichier(data,"Consignes_patient"); },
+    dossier:function(){ return data&&data.dossier; },
+    recharger:function(){ data=F.load(); render(); bar.dire(data?"✓ Données rechargées depuis la fiche d’intervention.":"Aucune donnée dans la fiche d’intervention."); }
+  });
+  document.getElementById("origine").addEventListener("click", function(){
+    if(!confirm("Revenir aux textes d'origine pour toutes les rubriques ? Vos corrections seront effacées.")) return;
+    try{ localStorage.removeItem(MODELES); }catch(e){}
+    render(); bar.dire("Textes d'origine rétablis.");
+  });
+  render();
+})();
+</script>
+</body>
+</html>

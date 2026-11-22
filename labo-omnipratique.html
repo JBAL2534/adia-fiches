@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Fiche de laboratoire – v1.0</title>
+<meta name="theme-color" content="#173a63">
+<link rel="icon" href="icon-192.png">
+<script src="fiches-commun.js"></script>
+<script src="fiches-nav.js" defer></script>
+<style>
+  :root{ --bleu:#173a63; --gris:#555; }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;color:#111;background:#eceff3;line-height:1.4}
+  .page{max-width:860px;margin:0 auto;background:#fff;padding:18px 20px 40px}
+
+  .bar{background:#fff;padding:6px 0 10px;border-bottom:1px solid #ddd;margin-bottom:14px}
+  .btns{display:flex;gap:8px;flex-wrap:wrap}
+  .btns button{flex:1 1 auto;padding:11px 10px;font-size:15px;border:1px solid #ccc;background:#f4f6f9;border-radius:9px;cursor:pointer;min-width:120px}
+  .btns button.main{background:var(--bleu);color:#fff;border-color:var(--bleu);font-weight:700}
+  .btns button.green{background:#1a7a3a;color:#fff;border-color:#1a7a3a;font-weight:700}
+  .live{margin-top:8px;min-height:18px;font-size:13.5px;color:var(--gris);font-style:italic}
+  .hint{font-size:12.5px;color:#666;margin-top:6px}
+
+  .doc{font-size:14px}
+  .entete{display:flex;gap:12px;align-items:center;border-bottom:2px solid var(--bleu);padding-bottom:8px;margin-bottom:12px}
+  .entete img{max-height:56px;max-width:180px}
+  .entete-nom{font-weight:800;font-size:17px;color:var(--bleu)}
+  .entete-ligne{font-size:12px;color:#444}
+  h1{font-size:19px;letter-spacing:.06em;text-align:center;color:var(--bleu);margin:6px 0 14px}
+  h3{font-size:13px;text-transform:uppercase;letter-spacing:.05em;color:var(--bleu);margin:16px 0 6px;border-bottom:1px solid #c9d3e2;padding-bottom:2px}
+  .deux{display:grid;grid-template-columns:1fr 1fr;gap:4px 24px}
+  .l{display:flex;gap:8px;align-items:baseline;padding:2px 0}
+  .k{font-weight:700;white-space:nowrap}
+  .ed{flex:1;display:inline-block;min-width:40px;min-height:18px;border-bottom:1px dotted #999;outline:none;padding:0 2px}
+  .ed:focus,.zone:focus{background:#fff8d6}
+  .ed:empty::before{content:attr(data-ph);color:#b3b3b3;font-style:italic}
+  table{width:100%;border-collapse:collapse;margin-top:4px}
+  th{background:var(--bleu);color:#fff;font-size:11.5px;text-transform:uppercase;letter-spacing:.04em;text-align:left;padding:6px 8px}
+  td{border:1px solid #c9d3e2;padding:6px 8px;vertical-align:top}
+  td .ed{display:block;border-bottom:none;min-height:20px}
+  .cases{display:flex;flex-wrap:wrap;gap:6px 20px;padding:2px 0}
+  .cases label{display:inline-flex;gap:6px;align-items:center;white-space:nowrap}
+  input[type=checkbox]{margin:0;width:15px;height:15px}
+  .zone{border:1px solid #c9d3e2;min-height:84px;padding:6px 8px;white-space:pre-wrap;outline:none;overflow-wrap:anywhere}
+  .zone:empty::before{content:attr(data-ph);color:#b3b3b3;font-style:italic}
+  .signature{margin-top:22px;display:flex;justify-content:flex-end}
+  .signature div{width:240px;border-top:1px solid #444;padding-top:4px;font-size:12px;color:#444;text-align:center}
+  .empty{padding:30px 10px;text-align:center;color:#666;font-size:15px}
+  .empty a{color:var(--bleu)}
+
+  @media (max-width:600px){ .deux{grid-template-columns:1fr} }
+  @media print{
+    body{background:#fff}
+    .page{max-width:none;padding:0}
+    .bar,.noprint{display:none !important}
+    .ed{border-bottom:none}
+    .ed:empty::before,.zone:empty::before{content:""}
+    th{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    tr,.zone{break-inside:avoid}
+    @page{size:A4;margin:13mm}
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="bar noprint">
+    <div class="btns">
+      <button id="classerAdia" class="green">📁 Classer dans le dossier du patient (ADIA)</button>
+      <button id="savefolder" class="main" style="display:none">💾 Word dans le dossier</button>
+      <button id="word">📝 Word</button>
+      <button id="print">🖨️ Imprimer</button>
+      <button id="reload" title="Recharger depuis la fiche d'intervention">↻ Depuis la fiche</button>
+    </div>
+    <div id="live" class="live"></div>
+    <div class="hint">Remplie depuis les actes de prothèse de la fiche d'intervention. Tout reste modifiable avant impression : cliquez sur un texte pour le corriger. Le nom du laboratoire est retenu d'un patient à l'autre.</div>
+  </div>
+
+  <div id="doc" class="doc"></div>
+
+</div>
+
+<script>
+(function(){
+  "use strict";
+  var F=window.ADIA_FICHES, esc=F.esc;
+  var STORE="omni-labo-v1", LABO="omni-labo-nom-v1";
+  var doc=document.getElementById("doc");
+  function texte(el){ return el.innerText!=null ? el.innerText : el.textContent; }
+  var data=F.load();
+
+  function lire(k){ try{ return JSON.parse(localStorage.getItem(k)||"{}")||{}; }catch(e){ return {}; } }
+  function saisies(){ return lire(STORE)[F.cle(data)]||{}; }
+  function ed(id, defaut, ph){ var s=saisies(), v=(id in s)?s[id]:(defaut==null?"":defaut);
+    return '<span class="ed" contenteditable="true" data-id="'+esc(id)+'" data-ph="'+esc(ph||"")+'">'+esc(v)+'</span>'; }
+  function cb(id, libelle, defaut){ var s=saisies(), on=(id in s)?!!s[id]:!!defaut;
+    return '<label><input type="checkbox" data-id="'+esc(id)+'"'+(on?" checked":"")+'> '+esc(libelle)+'</label>'; }
+  function zone(id, ph){ var s=saisies(), v=(id in s)?s[id]:"";
+    return '<div class="zone" contenteditable="true" data-id="'+esc(id)+'" data-ph="'+esc(ph||"")+'">'+esc(v)+'</div>'; }
+  function coche(re){ return (data.materiel||[]).some(function(g){ return (g.items||[]).some(function(it){ return re.test(it.id||"")||re.test(it.label||""); }); }); }
+
+  /* Teinte et matériau reconnus dans la précision de l'acte (« céramo-céramique, teinte A2 »). */
+  function teinteDe(t){ var m=String(t||"").match(/\b(?:teinte\s*)?((?:[A-D][1-4](?:[.,]5)?)|(?:BL[1-4])|(?:[0-5][LMR][1-3](?:[.,]5)?))\b/); return m?m[1]:""; }
+  function materiauDe(t){
+    t=String(t||"").toLowerCase();
+    if(/zircone/.test(t)) return "Zircone";
+    if(/c[ée]ramo[- ]?c[ée]ram|tout c[ée]ram|emax|e\.max|disilicate/.test(t)) return "Céramo-céramique";
+    if(/c[ée]ramo[- ]?m[ée]tal|ccm/.test(t)) return "Céramo-métallique";
+    if(/m[ée]tal|coul[ée]e/.test(t)) return "Métallique";
+    if(/r[ée]sine/.test(t)) return "Résine";
+    if(/stellite|ch[âa]ssis/.test(t)) return "Châssis métallique";
+    return "";
+  }
+
+  function render(){
+    if(!data || (!data.nom && !(data.actes||[]).length)){
+      doc.innerHTML='<div class="empty">Aucune intervention à reprendre.<br>Ouvrez la <a href="fiche-omnipratique.html">fiche d’intervention</a>, saisissez les actes, puis revenez ici.</div>';
+      return;
+    }
+    var d=F.parseDateFr(data.date), auj=new Date();
+    var travaux=(data.actes||[]).filter(function(a){ return /proth/i.test(a.disc||""); });
+    var laboNom=""; try{ laboNom=localStorage.getItem(LABO)||""; }catch(e){}
+    var h=F.enteteHtml();
+    h+='<h1>FICHE DE LABORATOIRE</h1>';
+    h+='<div class="deux">'
+      +'<div class="l"><span class="k">Laboratoire :</span>'+ed("labo", laboNom, "nom du laboratoire")+'</div>'
+      +'<div class="l"><span class="k">Envoyé le :</span>'+ed("envoi", F.fmtCourt(auj))+'</div>'
+      +'<div class="l"><span class="k">Patient :</span>'+ed("patient", ((data.nom||"").toUpperCase()+" "+(data.prenom||"")).trim())+'</div>'
+      +'<div class="l"><span class="k">N° de dossier :</span>'+ed("dossier", data.dossier||"")+'</div>'
+      +'<div class="l"><span class="k">Date de l’acte :</span>'+ed("dateacte", d?F.fmtCourt(d):(data.date||""))+'</div>'
+      +'<div class="l"><span class="k">Praticien :</span>'+ed("praticien", F.entete().dentiste||"")+'</div>'
+      +'</div>';
+
+    h+='<h3>Travail demandé</h3><table><tr><th style="width:13%">Dent(s)</th><th style="width:31%">Travail</th><th style="width:22%">Matériau</th><th style="width:12%">Teinte</th><th>Précision</th></tr>';
+    var lignes=travaux.length?travaux:[{acte:"",dent:"",note:""}];
+    lignes.forEach(function(a,i){
+      h+='<tr><td>'+ed("t"+i+"_dent", a.dent||"")+'</td><td>'+ed("t"+i+"_travail", (a.acte||"").replace(/\s*:\s*(pr[ée]paration et empreinte|pose)\s*$/i,""))+'</td>'
+        +'<td>'+ed("t"+i+"_mat", materiauDe(a.note))+'</td><td>'+ed("t"+i+"_teinte", teinteDe(a.note))+'</td><td>'+ed("t"+i+"_note", a.note||"")+'</td></tr>';
+    });
+    h+='<tr><td>'+ed("tx_dent","")+'</td><td>'+ed("tx_travail","")+'</td><td>'+ed("tx_mat","")+'</td><td>'+ed("tx_teinte","")+'</td><td>'+ed("tx_note","")+'</td></tr>';
+    h+='</table>';
+    if(!travaux.length) h+='<div class="hint noprint">Aucun acte de prothèse dans la fiche d’intervention : remplissez le tableau à la main, ou ajoutez l’acte dans la fiche.</div>';
+
+    h+='<h3>Éléments joints</h3><div class="cases">'
+      +cb("j_optique","Empreinte optique (fichier envoyé)", coche(/optique/i))
+      +cb("j_silicone","Empreinte silicone", coche(/silicone/i))
+      +cb("j_alginate","Empreinte alginate", coche(/alginate/i))
+      +cb("j_antago","Antagoniste")
+      +cb("j_occlu","Enregistrement de l’occlusion", coche(/occlusion/i))
+      +cb("j_arc","Arc facial")
+      +cb("j_photos","Photographies")
+      +cb("j_modeles","Modèles d’étude")
+      +'</div>';
+
+    h+='<h3>Étapes et délais</h3><div class="deux">'
+      +'<div class="l"><span class="k">Essayage souhaité le :</span>'+ed("essayage","","date")+'</div>'
+      +'<div class="l"><span class="k">Livraison souhaitée le :</span>'+ed("livraison","","date")+'</div>'
+      +'<div class="l"><span class="k">Rendez-vous du patient :</span>'+ed("rdv","","date et heure")+'</div>'
+      +'<div class="l"><span class="k">Retour au cabinet :</span>'+ed("retour","","coursier, envoi…")+'</div>'
+      +'</div>';
+
+    h+='<h3>Remarques pour le prothésiste</h3>'+zone("remarques","Forme, état de surface, caractérisations, limites, occlusion…");
+    h+='<div class="signature"><div>Signature du praticien</div></div>';
+    doc.innerHTML=h;
+  }
+
+  function memoriser(el){
+    var id=el.getAttribute("data-id"); if(!id || !data) return;
+    var o=lire(STORE), k=F.cle(data); o[k]=o[k]||{};
+    o[k][id] = el.type==="checkbox" ? el.checked : texte(el).replace(/ /g," ").replace(/\n+$/,"");
+    try{ localStorage.setItem(STORE, JSON.stringify(o)); if(id==="labo") localStorage.setItem(LABO, o[k][id]); }catch(e){}
+  }
+  doc.addEventListener("input", function(e){ var el=e.target.closest("[data-id]"); if(el && el.type!=="checkbox") memoriser(el); });
+  doc.addEventListener("change", function(e){ if(e.target.matches("input[type=checkbox][data-id]")) memoriser(e.target); });
+
+  var bar=F.barre({
+    titre:function(){ return F.titreFichier(data,"Fiche_laboratoire"); },
+    dossier:function(){ return data&&data.dossier; },
+    recharger:function(){ data=F.load(); render(); bar.dire(data?"✓ Données rechargées depuis la fiche d’intervention.":"Aucune donnée dans la fiche d’intervention."); }
+  });
+  render();
+})();
+</script>
+</body>
+</html>

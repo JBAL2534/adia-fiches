@@ -3,7 +3,10 @@
    Aucune donnée ne quitte le poste : tout est lu dans le stockage local du navigateur. */
 window.ADIA_FICHES = (function(){
   "use strict";
-  var HANDOFF = "adia-fiches-handoff-v1";
+  /* La version omnipratique (pages « …-omnipratique.html », ou adresse terminée par ?profil=omni)
+     dépose ses données à part : elle ne se mélange jamais avec la fiche du cabinet. */
+  var OMNI = /omnipratique/i.test(location.pathname) || /[?&]profil=omni\b/.test(location.search);
+  var HANDOFF = OMNI ? "adia-omni-handoff-v1" : "adia-fiches-handoff-v1";
   var MOIS = ["janvier","février","mars","avril","mai","juin","juillet","août","septembre","octobre","novembre","décembre"];
   var JOURS = ["dimanche","lundi","mardi","mercredi","jeudi","vendredi","samedi"];
 
@@ -114,6 +117,22 @@ window.ADIA_FICHES = (function(){
     return { dire:dire };
   }
 
+  /* ---- en-tête du cabinet (réglé dans la fiche d'intervention, « Modifier l'en-tête ») ---- */
+  function entete(){
+    var d={cabinet:"La Clé du Sourire", dentiste:"Dr Jacques BITTON", specialite:"", adresse:"", telephone:"", email:"", logo:""};
+    try{ var v=JSON.parse(localStorage.getItem("adia-entete-v1")); if(v && (v.cabinet||v.dentiste||v.specialite||v.adresse||v.telephone||v.email||v.logo)){ for(var k in d){ if(v[k]!=null) d[k]=v[k]; } } }catch(e){}
+    return d;
+  }
+  function enteteHtml(){
+    var e=entete(), l=[];
+    if(e.cabinet) l.push(esc(e.cabinet)+(e.specialite?" · "+esc(e.specialite):""));
+    if(e.adresse) l.push(esc(e.adresse));
+    var te=[]; if(e.telephone) te.push("Tél. "+esc(e.telephone)); if(e.email) te.push(esc(e.email));
+    if(te.length) l.push(te.join(" · "));
+    return '<div class="entete">'+(e.logo?'<img src="'+esc(e.logo)+'" alt="">':'')
+      +'<div><div class="entete-nom">'+esc(e.dentiste||"")+'</div>'+l.map(function(x){ return '<div class="entete-ligne">'+x+'</div>'; }).join("")+'</div></div>';
+  }
+
   /* ---- lecture d'une étiquette GS1 (DataMatrix / code 128) saisie par une douchette ---- */
   var GS1_FIXE = {"00":18,"01":14,"02":14,"11":6,"13":6,"15":6,"17":6,"20":2};
   var GS1_VAR = ["10","21","22","240","241","30","37"];
@@ -153,7 +172,7 @@ window.ADIA_FICHES = (function(){
     return { champs:champs, lot:champs["10"]||"", lignes:lignes, texte:lignes.join("\n") };
   }
 
-  return { HANDOFF:HANDOFF, MOIS:MOIS, JOURS:JOURS, load:load, esc:esc, slug:slug, parseDateFr:parseDateFr,
+  return { OMNI:OMNI, HANDOFF:HANDOFF, MOIS:MOIS, JOURS:JOURS, load:load, esc:esc, slug:slug, parseDateFr:parseDateFr,
     fmtLong:fmtLong, fmtCourt:fmtCourt, fmtJourCourt:fmtJourCourt, arcade:arcade, dentsOf:dentsOf, parseSpec:parseSpec,
-    cle:cle, titreFichier:titreFichier, barre:barre, lireGs1:lireGs1 };
+    cle:cle, titreFichier:titreFichier, entete:entete, enteteHtml:enteteHtml, barre:barre, lireGs1:lireGs1 };
 })();
