@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Devis – v1.0</title>
+<meta name="theme-color" content="#173a63">
+<link rel="icon" href="icon-192.png">
+<script src="fiches-commun.js"></script>
+<script src="fiches-nav.js" defer></script>
+<style>
+  :root{ --bleu:#173a63; --gris:#555; }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{font-family:Arial,Helvetica,sans-serif;color:#111;background:#eceff3;line-height:1.3}
+  .page{max-width:1180px;margin:0 auto;background:#fff;padding:18px 20px 40px}
+
+  .bar{background:#fff;padding:6px 0 10px;border-bottom:1px solid #ddd;margin-bottom:14px;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif}
+  .btns{display:flex;gap:8px;flex-wrap:wrap}
+  .btns button{flex:1 1 auto;padding:11px 10px;font-size:15px;border:1px solid #ccc;background:#f4f6f9;border-radius:9px;cursor:pointer;min-width:120px}
+  .btns button.main{background:var(--bleu);color:#fff;border-color:var(--bleu);font-weight:700}
+  .btns button.green{background:#1a7a3a;color:#fff;border-color:#1a7a3a;font-weight:700}
+  .live{margin-top:8px;min-height:18px;font-size:13.5px;color:var(--gris);font-style:italic}
+  .hint{font-size:12.5px;color:#666;margin-top:6px}
+  details.regl{margin:10px 0 0;border:1px solid #c9d3e2;border-radius:8px;padding:8px 10px;background:#f7f9fc}
+  details.regl summary{cursor:pointer;font-weight:700;color:var(--bleu);font-size:14px;min-height:28px}
+  details.regl .defile{overflow-x:auto}
+  details.regl table{min-width:980px}
+  details.regl th{background:var(--bleu);color:#fff;font-size:11px;padding:5px 6px;text-align:left}
+  details.regl td{background:#fff;padding:3px 4px;border:1px solid #c9d3e2}
+  details.regl input[type=text]{width:100%;padding:6px 6px;font-size:13.5px;border:1px solid #b9c4d4;border-radius:6px}
+  details.regl input.court{text-align:right}
+
+  .defile-doc{overflow-x:auto}
+  .doc{font-size:11.5px;min-width:1080px}
+  .feuille{margin-bottom:26px}
+  .titre{border:1px solid #000;text-align:center;padding:4px 8px;margin:0 110px 8px;position:relative}
+  .titre b{font-size:15px;font-weight:400;display:block}
+  .titre span{font-size:12.5px}
+  .numpage{position:absolute;right:-104px;top:4px;font-size:11px}
+  .avert{font-size:10.5px;margin:0 30px 8px}
+  .deuxcol{display:grid;grid-template-columns:1fr 1.07fr;gap:6px}
+  .cadre{border:1px solid #000;border-radius:14px;padding:8px 10px}
+  .cadre h4{margin:0 0 6px;font-size:13.5px;font-weight:400;letter-spacing:.02em}
+  .l{display:flex;gap:6px;align-items:baseline;padding:2.5px 0;flex-wrap:wrap}
+  .ed{flex:1;display:inline-block;min-width:36px;min-height:15px;border-bottom:1px dotted #777;outline:none;padding:0 2px}
+  .ed.fixe{flex:0 0 auto;min-width:90px}
+  .ed:focus,.zone:focus,td[contenteditable]:focus{background:#fff8d6;outline:none}
+  .ed:empty::before{content:attr(data-ph);color:#b3b3b3;font-style:italic}
+  .mutuelle{background:#e9dcfb;border-radius:12px;padding:8px 10px;margin-top:10px}
+  .zone{min-height:44px;white-space:pre-wrap;outline:none;border-bottom:1px dotted #777}
+  .cases{display:flex;flex-wrap:wrap;gap:4px 18px;padding:2px 0;align-items:center}
+  .cases label{display:inline-flex;gap:5px;align-items:center;white-space:nowrap}
+  input[type=checkbox]{margin:0;width:13px;height:13px}
+  table{width:100%;border-collapse:collapse}
+  .leg{display:grid;grid-template-columns:27% 1fr;gap:8px;align-items:start}
+  .leg table td,.leg table th{border:1px solid #000;padding:3px 5px;font-size:10.5px;font-weight:400;text-align:center}
+  .leg .g{background:#eee}
+  .petit{font-size:10.5px}
+  table.actes{margin-top:0}
+  table.actes th{border:1px solid #000;font-size:10.5px;font-weight:400;padding:3px 3px;text-align:center;vertical-align:middle}
+  table.actes td{border:1px solid #000;padding:3px 4px;min-height:20px;height:22px;vertical-align:middle;overflow-wrap:anywhere}
+  table.actes td.num{text-align:right;white-space:nowrap}
+  table.actes td.c{text-align:center}
+  table.actes td.calc{background:#f6f8fb}
+  table.actes .dm{display:block;font-size:9.5px;color:#444}
+  table.actes .dm.vide{color:#b8b8b8}
+  table.actes tr.total td{font-weight:700;border-top:2px solid #000}
+  .bandeau{border:1px solid #000;border-bottom:none;padding:3px 6px;font-size:15px}
+  .bandeau small{font-size:11px}
+  .alt{background:#eee;border:2px solid #999;padding:6px;margin-top:8px}
+  .alt .bandeau{background:#fff;font-size:13px}
+  .alt table{background:#fff}
+  .alt p{margin:0 0 6px;font-size:11px}
+  .alt p b{font-size:15px;font-weight:400}
+  .sign{display:grid;grid-template-columns:1.2fr 1fr;gap:60px;margin-top:10px}
+  .sign .cadre{min-height:62px;font-size:10.5px}
+  .empty{padding:30px 10px;text-align:center;color:#666;font-size:15px}
+  .empty a{color:var(--bleu)}
+  .suppr{border:none;background:transparent;color:#b0243a;cursor:pointer;font-size:14px;padding:0 4px}
+
+  @media print{
+    body{background:#fff}
+    .page{max-width:none;padding:0}
+    .bar,.noprint{display:none !important}
+    .defile-doc{overflow:visible}
+    .doc{min-width:0}
+    .ed,.zone{border-bottom:none}
+    .ed:empty::before{content:""}
+    table.actes td.calc{background:#fff}
+    table.actes .dm.vide{display:none}
+    .feuille{margin:0;break-after:page}
+    .feuille:last-child{break-after:auto}
+    .mutuelle,.alt,.leg .g{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    tr{break-inside:avoid}
+    @page{size:A4 landscape;margin:8mm 9mm}
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="bar noprint">
+    <div class="btns">
+      <button id="classerAdia" class="green">📁 Classer dans le dossier du patient (ADIA)</button>
+      <button id="savefolder" class="main" style="display:none">💾 Word dans le dossier</button>
+      <button id="word">📝 Word</button>
+      <button id="print">🖨️ Imprimer / PDF</button>
+      <button id="reload" title="Recharger depuis le plan de traitement">↻ Recharger le plan</button>
+    </div>
+    <div id="live" class="live"></div>
+    <div class="hint">Devis conventionnel (entente directe), rempli depuis l'odontogramme du plan de traitement. <b>Les cotations, honoraires et bases de remboursement viennent de votre grille</b> : remplissez-la une fois ci-dessous, elle est retenue sur ce poste. Tout reste modifiable dans le devis avant impression ; les cases grisées se calculent seules. Imprimez en paysage.</div>
+    <div id="reglages"></div>
+  </div>
+
+  <div class="defile-doc"><div id="doc" class="doc"></div></div>
+
+</div>
+
+<script>
+(function(){
+  "use strict";
+  var F=window.ADIA_FICHES, esc=F.esc;
+  var GRILLE="omni-devis-grille-v1", TAUX="omni-devis-taux-v1", PRAT="omni-devis-praticien-v1", STORE="omni-devis-v1";
+  var doc=document.getElementById("doc"), regl=document.getElementById("reglages");
+  function texte(el){ return el.innerText!=null ? el.innerText : el.textContent; }
+  function lire(k){ try{ return JSON.parse(localStorage.getItem(k)||"{}")||{}; }catch(e){ return {}; } }
+  function ecrire(k,o){ try{ localStorage.setItem(k, JSON.stringify(o)); }catch(e){} }
+
+  /* ---------- le plan de traitement ---------- */
+  var NOMS={ "ccm":"Couronne céramo-métallique", "ccc":"Couronne céramo-céramique", "ic":"Inlay-core", "inlay":"Inlay-onlay",
+    "bridge":"Bridge", "pap":"Prothèse amovible partielle", "pac":"Prothèse amovible complète", "gouttière":"Gouttière", "facette":"Facette" };
+  function lirePlan(){ var o=null; try{ o=JSON.parse(localStorage.getItem("omni_plan_current")||"null"); }catch(e){} return (o && o.p) ? o : null; }
+  var plan=lirePlan();
+  function cleCode(c){ return String(c||"").trim().toLowerCase(); }
+  function grille(){ return lire(GRILLE); }
+  /* Une ligne de la grille. Sans réglage : seuls les codes de prothèse d'origine vont au devis. */
+  function ligneGrille(code){
+    var k=cleCode(code), g=grille()[k]||{};
+    return { on:("on" in g) ? !!g.on : !!NOMS[k], cotation:g.cotation||"", nature:g.nature||NOMS[k]||"", mat:g.mat||"", panier:g.panier||"",
+      hlf:g.hlf||"", hono:g.hono||"", dm:g.dm||"", base:g.base||"" };
+  }
+  function codesConnus(){
+    var vus={}, out=[];
+    [].concat((plan && plan.actsList)||[], Object.keys(grille()), Object.keys(NOMS)).forEach(function(c){
+      c=String(c||"").trim(); var k=cleCode(c); if(!k || vus[k]) return; vus[k]=1; out.push(c);
+    });
+    return out;
+  }
+  function extraire(t){
+    var reste=" "+String(t||"").replace(/[,;+\/]+/g," ").replace(/\s+/g," ")+" ", trouves=[];
+    codesConnus().sort(function(x,y){ return y.length-x.length; }).forEach(function(c){
+      var motif=" "+c.replace(/\s+/g," ").toLowerCase()+" ", i=reste.toLowerCase().indexOf(motif);
+      if(i<0) return; trouves.push(c); reste=reste.slice(0,i)+" "+reste.slice(i+motif.length-1);
+    });
+    return trouves;
+  }
+  /* Une ligne de devis par dent et par acte retenu. */
+  function lignesPlan(){
+    var out=[]; if(!plan) return out;
+    Object.keys(plan.teeth||{}).sort().forEach(function(dent){
+      extraire(plan.teeth[dent]).forEach(function(code){ if(ligneGrille(code).on) out.push({dent:dent, code:code}); });
+    });
+    return out;
+  }
+
+  /* ---------- montants ---------- */
+  function nombre(t){ var n=parseFloat(String(t||"").replace(/\s|€/g,"").replace(",",".")); return isNaN(n)?null:n; }
+  function euros(n){ return n==null ? "" : n.toFixed(2).replace(".",","); }
+  function taux(){ var t=60; try{ var v=localStorage.getItem(TAUX); if(v!==null && v!=="") t=nombre(v); }catch(e){} return (t==null||t<0||t>100)?60:t; }
+
+  /* ---------- saisies : par patient (sans la date, un devis vit plusieurs jours) ---------- */
+  function clePatient(){ return plan ? [F.slug(plan.p.dossier), F.slug(plan.p.nom).toUpperCase()].join("|") : ""; }
+  function saisies(){ return lire(STORE)[clePatient()]||{}; }
+  function ed(id, defaut, ph, cls){ var s=saisies(), v=(id in s)?s[id]:(defaut==null?"":defaut);
+    return '<span class="ed'+(cls?" "+cls:"")+'" contenteditable="true" data-id="'+esc(id)+'" data-ph="'+esc(ph||"")+'">'+esc(v)+'</span>'; }
+  function edG(id, defaut, ph, cls){ var p=lire(PRAT), v=(id in p)?p[id]:(defaut==null?"":defaut);   /* identité du praticien : commune à tous les devis */
+    return '<span class="ed'+(cls?" "+cls:"")+'" contenteditable="true" data-g="'+esc(id)+'" data-ph="'+esc(ph||"")+'">'+esc(v)+'</span>'; }
+  function cb(id, libelle){ var s=saisies();
+    return '<label><input type="checkbox" data-id="'+esc(id)+'"'+(s[id]?" checked":"")+'> '+esc(libelle)+'</label>'; }
+  function td(id, defaut, cls){ var s=saisies(), v=(id in s)?s[id]:(defaut==null?"":defaut);
+    return '<td'+(cls?' class="'+cls+'"':'')+' contenteditable="true" data-id="'+esc(id)+'">'+esc(v)+'</td>'; }
+
+  function identites(n){
+    var e=F.entete();
+    return '<div class="deuxcol"><div class="cadre"><h4>Identification du chirurgien-dentiste traitant</h4>'
+      +(n===1?'<div class="l">Nom Prénom : '+edG("nom", e.dentiste||"")+'</div>':'')
+      +'<div class="l">Identifiant du praticien RPPS '+edG("rpps","","n° RPPS","fixe")+' N° Adeli '+edG("adeli","","n° Adeli","fixe")+' ou</div>'
+      +'<div class="l">N° de l’établissement (FINESS) : '+edG("finess","","n° FINESS","fixe")+'</div>'
+      +(n===1?'<div class="l">Raison sociale et adresse : '+edG("adresse", [e.cabinet,e.adresse].filter(Boolean).join(" — "))+'</div>':'')
+      +'</div><div class="cadre"><h4>Identification du patient</h4>'
+      +'<div class="l">Nom et prénom : '+ed("patient", plan.p.nom||"")+' Date de naissance : '+ed("naissance","","jj/mm/aaaa","fixe")+'</div>'
+      +'<div class="l">N° de Sécurité sociale du patient : '+ed("nss","","")+'</div>'
+      +(n===1?'<div class="mutuelle">A remplir par l’assuré si celui-ci souhaite envoyer ce devis à son organisme complémentaire pour connaître son éventuel reste à charge selon son contrat :'
+        +'<div class="l" style="margin-top:8px">Nom de l’organisme complémentaire : '+ed("oc_nom","")+'</div>'
+        +'<div class="l">N° de contrat ou d’adhérent : '+ed("oc_contrat","")+'</div>'
+        +'<div class="l">Référence dossier (à remplir par l’organisme complémentaire) : '+ed("oc_ref","")+'</div></div>':'')
+      +'</div></div>';
+  }
+
+  var ENTETES='<th style="width:4.5%">N° de traitement</th><th style="width:5.5%">N° dent ou Localisation</th><th style="width:9%">Cotation CCAM, NGAP ou acte HN</th><th>Nature de l’acte</th><th style="width:5%">Matériaux utilisés (**)</th>';
+  function colonnesMontants(realise){
+    return '<th style="width:7%">Honoraires limites de facturation</th><th style="width:7.5%">Honoraires dont prix de vente du dispositif médical</th><th style="width:7.5%">Base de remboursement Assurance Maladie obligatoire</th>'
+      +'<th style="width:7%">Montant remboursé Assurance Maladie obligatoire(***)</th><th style="width:7%">Montant non remboursé Assurance Maladie obligatoire</th>'+(realise?'<th style="width:5.5%">Réalisé par votre praticien</th>':'');
+  }
+  /* Cellules d'une ligne (id = préfixe unique). g = valeurs de la grille, ou rien pour une ligne libre. */
+  function celluleHono(id, g){
+    var s=saisies(), h=(id+"_hono" in s)?s[id+"_hono"]:(g?g.hono:""), dm=(id+"_dm" in s)?s[id+"_dm"]:(g?g.dm:"");
+    return '<td class="num"><span contenteditable="true" data-id="'+id+'_hono" style="display:block;min-height:14px;outline:none">'+esc(h)+'</span>'
+      +'<span class="dm">dont DM : <span contenteditable="true" data-id="'+id+'_dm" style="outline:none;min-width:24px;display:inline-block">'+esc(dm)+'</span></span></td>';
+  }
+  function ligne(id, n, dent, g, panier, realise, suppr){
+    return '<tr data-ligne="'+id+'">'+td(id+"_n", n, "c")+td(id+"_dent", dent, "c")+td(id+"_cot", g?g.cotation:"", "c")
+      +'<td contenteditable="true" data-id="'+id+'_nature">'+esc((id+"_nature" in saisies())?saisies()[id+"_nature"]:(g?g.nature:""))+'</td>'
+      +td(id+"_mat", g?g.mat:"", "c")+(panier?td(id+"_panier", g?g.panier:"", "c"):"")
+      +td(id+"_hlf", g?g.hlf:"", "num")+celluleHono(id,g)+td(id+"_base", g?g.base:"", "num")
+      +'<td class="num calc" data-calc="remb"></td><td class="num calc" data-calc="nonremb"></td>'
+      +(realise?td(id+"_real","", "c"):"")
+      +(suppr?'<td class="noprint c" style="border:none;width:26px"><button type="button" class="suppr" data-suppr="'+esc(suppr)+'" title="Retirer cette ligne">✕</button></td>':'')
+      +'</tr>';
+  }
+  function tableauAlt(cle, titre){
+    var s=saisies(), codes=Array.isArray(s[cle])?s[cle]:[];
+    var h='<div class="bandeau">'+titre+'</div><table class="actes"><tr>'+ENTETES+colonnesMontants(true)+'<th class="noprint" style="border:none;width:26px"></th></tr>';
+    codes.forEach(function(c,i){ h+=ligne(cle+"_"+i+"_"+F.slug(c), "", "", ligneGrille(c), false, true, cle+"|"+i); });
+    for(var k=codes.length;k<Math.max(3,codes.length+1);k++) h+=ligne(cle+"_v"+k, "", "", null, false, true, "");
+    h+='</table><div class="hint noprint" style="margin:4px 0 0"><label>Ajouter depuis la grille : <select data-alt="'+cle+'" style="font-size:13px;padding:4px 6px"><option value="">— choisir un acte —</option>'
+      +codesConnus().map(function(c){ var g=ligneGrille(c); return '<option value="'+esc(c)+'">'+esc(c)+(g.nature?" — "+esc(g.nature):"")+'</option>'; }).join("")+'</select></label></div>';
+    return h;
+  }
+
+  function renderReglages(){
+    var ouvert=false; try{ ouvert=sessionStorage.getItem("omni-devis-regl-ouvert")==="1"; }catch(e){}
+    function inp(k,ch,v,ph,court){ return '<input type="text"'+(court?' class="court"':'')+' data-regl="'+esc(k)+'" data-champ="'+ch+'" value="'+esc(v)+'" placeholder="'+esc(ph||"")+'">'; }
+    regl.innerHTML='<details class="regl" id="reglGrille"'+(ouvert?" open":"")+'><summary>⚙ Grille du cabinet : cotations, honoraires, bases de remboursement</summary>'
+      +'<div class="hint" style="margin:6px 0">Cochez les codes du plan qui figurent au devis et saisissez leurs montants, tels qu’ils sont en vigueur. <b>Aucun montant n’est fourni par l’application : c’est vous qui les saisissez et les tenez à jour.</b> '
+      +'Matériau : 1 à 6 · Panier : 1 = 100 % Santé, 2 = modéré, 3 = libre, 4 = Complémentaire santé solidaire. '
+      +'Taux de remboursement de l’Assurance Maladie obligatoire : <input type="text" id="tauxAmo" value="'+esc(String(taux()).replace(".",","))+'" style="width:54px;text-align:right;padding:5px 6px;border:1px solid #b9c4d4;border-radius:6px"> % (à vérifier)</div>'
+      +'<div class="defile"><table><tr><th style="width:5%">Devis</th><th style="width:9%">Code du plan</th><th style="width:11%">Cotation</th><th>Nature de l’acte</th><th style="width:6%">Mat.</th><th style="width:6%">Panier</th><th style="width:9%">Hon. limite</th><th style="width:9%">Honoraires</th><th style="width:9%">dont DM</th><th style="width:9%">Base remb.</th></tr>'
+      +codesConnus().map(function(c){ var g=ligneGrille(c), k=cleCode(c);
+        return '<tr><td style="text-align:center"><input type="checkbox" data-regl="'+esc(k)+'" data-champ="on"'+(g.on?" checked":"")+'></td><td><b>'+esc(c)+'</b></td>'
+          +'<td>'+inp(k,"cotation",g.cotation,"code CCAM / HN")+'</td><td>'+inp(k,"nature",g.nature,"libellé de l’acte")+'</td><td>'+inp(k,"mat",g.mat,"1-6",1)+'</td><td>'+inp(k,"panier",g.panier,"1-4",1)+'</td>'
+          +'<td>'+inp(k,"hlf",g.hlf,"€",1)+'</td><td>'+inp(k,"hono",g.hono,"€",1)+'</td><td>'+inp(k,"dm",g.dm,"€",1)+'</td><td>'+inp(k,"base",g.base,"€",1)+'</td></tr>'; }).join("")
+      +'</table></div></details>';
+  }
+
+  function render(){
+    plan=lirePlan();
+    if(!plan || (!String(plan.p.nom||"").trim() && !Object.keys(plan.teeth||{}).length)){
+      regl.innerHTML="";
+      doc.innerHTML='<div class="empty">Aucun plan de traitement à reprendre.<br>Ouvrez le <a href="plan-omnipratique.html">plan de traitement</a>, saisissez le patient et les actes par dent, puis revenez ici.</div>';
+      return;
+    }
+    renderReglages();
+    var auj=F.fmtCourt(new Date()), s=saisies(), h='';
+
+    /* ---------------- page 1 ---------------- */
+    h+='<div class="feuille"><div class="titre"><b>DEVIS POUR LES TRAITEMENTS ET ACTES BUCCO-DENTAIRES FAISANT L’OBJET D’UNE ENTENTE DIRECTE</b>'
+      +'<span>conformément aux dispositions de la convention nationale des chirurgiens-dentistes (publiée au JO du 25 août 2018)</span><span class="numpage">Page 1/2</span></div>'
+      +'<p class="avert">Ce devis est la propriété du patient ou de son représentant légal. La communication de ce document à un tiers se fait sous sa seule responsabilité. Ce devis est informatif, les montants des honoraires et prises en charge sont définis selon les droits effectifs à la date de réalisation de l’acte. Les soins à tarifs opposables ne sont pas compris dans ce devis.</p>';
+    h+=identites(1);
+    h+='<div class="deuxcol" style="margin-top:6px"><div class="cadre">'
+      +'<div class="l">Date du devis : '+ed("date", auj, "jj/mm/aaaa", "fixe")+'</div>'
+      +'<div class="l">Valable jusqu’au <span class="petit">(sous réserve de modification réglementaire)</span> : '+ed("valable","","jj/mm/aaaa","fixe")+'</div>'
+      +'<div class="l" style="margin-top:8px">Ce devis contient 2 pages indissociables</div>'
+      +'<div class="l">Description du traitement proposé :</div><div class="zone" contenteditable="true" data-id="description">'+esc(("description" in s)?s.description:(plan.p.complements||""))+'</div>'
+      +'</div><div></div></div>';
+    h+='<div class="cadre" style="margin-top:6px"><div class="cases">Lieu de fabrication du dispositif médical : '+cb("lieu_ue","au sein de l’Union Européenne")+cb("lieu_hors","hors Union Européenne")+'</div>'
+      +'<div class="cases">'+cb("st_sans","sans sous-traitance du fabricant")+cb("st_avec","avec une partie de la réalisation du fabricant sous traitée :")+cb("st_ue","au sein de l’Union Européenne")+cb("st_hors","hors Union Européenne")+'</div>'
+      +'<div style="margin-top:4px">A l’issue du traitement, il vous sera remis une fiche de traçabilité et la déclaration de conformité du dispositif médical (document rempli par le fabricant ou son mandataire et sous sa seule responsabilité)</div></div>';
+    h+='<div class="cadre" style="margin-top:6px"><div class="leg"><div><h4>Légende explicative du devis :</h4><div class="petit">* &nbsp; HN = Hors Nomenclature,</div>'
+      +'<div class="petit" style="margin-top:30px">*** Les montants remboursés et non remboursés du régime obligatoire sont informatifs, la prise en charge définitive est définie à la date de réalisation de l’acte.</div></div><div>'
+      +'<table><tr><td rowspan="2" style="width:12%;text-align:left">**<br>Matériaux et normes</td><td style="width:3%">1</td><td style="text-align:left">Alliage précieux NF EN ISO 22674 2016</td><td style="width:3%">2</td><td style="text-align:left">Alliage non précieux ISO 22674 2016</td><td style="width:3%">3</td><td style="text-align:left">Céramo-céramique NF EN ISO 9693 2016</td></tr>'
+      +'<tr><td>4</td><td style="text-align:left">Céramique céramométallique NF EN ISO 6872 2015</td><td>5</td><td style="text-align:left">Polymères de base NF EN ISO 20795:1:2013</td><td>6</td><td style="text-align:left">Dents artificielles NF EN ISO 22112 2017</td></tr></table>'
+      +'<table style="margin-top:8px"><tr><td rowspan="4" class="g" style="width:13%">****<br>Paniers</td><th style="width:6%">Codes</th><th style="width:13%">Libellés</th><th>Conditions tarifaires</th><th style="width:42%">Prise en charge complémentaire</th></tr>'
+      +'<tr><td>1</td><td>100% Santé</td><td>soumis à honoraires limites de facturation</td><td>sans reste à charge,<br>si le patient bénéficie d’un contrat dit responsable</td></tr>'
+      +'<tr><td>2</td><td>Modéré</td><td>soumis à honoraires limites de facturation</td><td>selon le contrat du patient</td></tr>'
+      +'<tr><td>3</td><td>Libre</td><td>honoraires libres</td><td>selon le contrat du patient</td></tr>'
+      +'<tr><td class="g">Panier Complémentaire santé solidaire</td><td>4</td><td>Complémentaire santé solidaire</td><td>soumis à honoraires limites de facturation</td><td>pour les assurés bénéficiaires<br>de la Complémentaire Santé Solidaire</td></tr></table>'
+      +'</div></div></div></div>';
+
+    /* ---------------- page 2 ---------------- */
+    h+='<div class="feuille"><div style="position:relative">'+identites(2)+'</div>';
+    h+='<div class="bandeau" style="margin-top:6px">Traitement proposé - <small>Description précise et détaillée des actes</small></div>'
+      +'<table class="actes" id="tPropose"><tr>'+ENTETES+'<th style="width:4.5%">Panier (****)</th>'+colonnesMontants(false)+'</tr>';
+    var lignes=lignesPlan();
+    lignes.forEach(function(l,i){ h+=ligne("p_"+l.dent+"_"+F.slug(l.code), i+1, l.dent, ligneGrille(l.code), true, false, ""); });
+    for(var k=lignes.length;k<Math.max(7,lignes.length+1);k++) h+=ligne("p_libre"+k, "", "", null, true, false, "");
+    h+='<tr class="total"><td colspan="7" class="num" style="font-weight:400">TOTAL €(des actes envisagés)</td><td class="num" data-total="hono"></td><td class="num" data-total="base"></td><td class="num" data-total="remb"></td><td class="num" data-total="nonremb"></td></tr></table>';
+    if(!lignes.length) h+='<div class="hint noprint">Aucun acte du plan n’est coché « Devis » dans la grille : ouvrez la grille ci-dessus, ou remplissez les lignes à la main.</div>';
+
+    h+='<div class="alt"><p><b>Information alternative thérapeutique -</b> en cas de reste à charge éventuel, une information sur des alternatives thérapeutiques 100% Santé ou à défaut, à entente directe modérée est donnée par le praticien. Sur demande du patient, elle peut donner lieu à une nouvelle proposition de plan de traitement complet, dans un devis distinct.</p>'
+      +tableauAlt("alt_sans","Acte sans reste à charge")+'<div style="height:8px"></div>'+tableauAlt("alt_mod","Acte en reste à charge modéré")+'</div>';
+    h+='<div class="sign"><div class="cadre">Le patient ou son représentant légal reconnaît avoir eu la possibilité du choix de son traitement<br>Date et signature du patient ou du (ou des) responsable(s) légal (légaux)</div><div class="cadre">Signature du Chirurgien-dentiste</div></div>';
+    h+='<span class="numpage" style="display:none">Page 2/2</span></div>';
+    doc.innerHTML=h;
+    calculer();
+  }
+
+  /* Montant remboursé = base × taux ; non remboursé = honoraires − remboursé. Totaux du traitement proposé. */
+  function calculer(){
+    var t=taux()/100, tot={hono:0,base:0,remb:0,nonremb:0}, vu=false;
+    [].forEach.call(doc.querySelectorAll("tr[data-ligne]"), function(tr){
+      var id=tr.getAttribute("data-ligne");
+      function v(suf){ var el=tr.querySelector('[data-id="'+id+suf+'"]'); return el?nombre(texte(el)):null; }
+      var hono=v("_hono"), base=v("_base");
+      var remb=base==null?null:Math.round(base*t*100)/100, non=(hono==null)?null:Math.round((hono-(remb||0))*100)/100;
+      var dmEl=tr.querySelector(".dm"); if(dmEl) dmEl.classList.toggle("vide", v("_dm")==null);   /* « dont DM » vide : pas imprimé */
+      tr.querySelector('[data-calc="remb"]').textContent=euros(remb);
+      tr.querySelector('[data-calc="nonremb"]').textContent=euros(non);
+      if(tr.closest("#tPropose") && (hono!=null || base!=null)){ vu=true; tot.hono+=hono||0; tot.base+=base||0; tot.remb+=remb||0; tot.nonremb+=non||0; }
+    });
+    ["hono","base","remb","nonremb"].forEach(function(k){ var c=doc.querySelector('[data-total="'+k+'"]'); if(c) c.textContent=(vu?euros(tot[k]):"")+" €"; });
+  }
+
+  function memoriser(el){
+    if(el.hasAttribute("data-g")){ var p=lire(PRAT); p[el.getAttribute("data-g")]=texte(el).replace(/ /g," ").trim(); ecrire(PRAT,p);
+      [].forEach.call(doc.querySelectorAll('[data-g="'+el.getAttribute("data-g")+'"]'), function(o){ if(o!==el) o.textContent=texte(el); }); return; }
+    var id=el.getAttribute("data-id"); if(!id) return;
+    var o=lire(STORE), k=clePatient(); o[k]=o[k]||{};
+    o[k][id] = el.type==="checkbox" ? el.checked : texte(el).replace(/ /g," ").replace(/\n+$/,"");
+    ecrire(STORE,o);
+    if(el.type!=="checkbox") [].forEach.call(doc.querySelectorAll('[data-id="'+id+'"]'), function(x){ if(x!==el) x.textContent=texte(el); });   /* identité du patient répétée page 2 */
+  }
+  doc.addEventListener("input", function(e){ var el=e.target.closest("[data-id],[data-g]"); if(el && el.type!=="checkbox"){ memoriser(el); calculer(); } });
+  doc.addEventListener("change", function(e){
+    var t=e.target;
+    if(t.matches("input[type=checkbox][data-id]")){ memoriser(t); return; }
+    if(t.matches("select[data-alt]") && t.value){ var o=lire(STORE), k=clePatient(), c=t.getAttribute("data-alt"); o[k]=o[k]||{}; o[k][c]=(Array.isArray(o[k][c])?o[k][c]:[]).concat([t.value]); ecrire(STORE,o); render(); }
+  });
+  doc.addEventListener("click", function(e){
+    var b=e.target.closest("[data-suppr]"); if(!b) return;
+    var v=b.getAttribute("data-suppr"); if(!v){ var tr=b.closest("tr"); [].forEach.call(tr.querySelectorAll("[data-id]"), function(c){ c.textContent=""; memoriser(c); }); calculer(); return; }
+    var p=v.split("|"), o=lire(STORE), k=clePatient(); if(o[k] && Array.isArray(o[k][p[0]])){ o[k][p[0]].splice(+p[1],1); ecrire(STORE,o); render(); }
+  });
+  regl.addEventListener("toggle", function(e){ if(e.target.id==="reglGrille"){ try{ sessionStorage.setItem("omni-devis-regl-ouvert", e.target.open?"1":"0"); }catch(_){} } }, true);
+  regl.addEventListener("change", function(e){
+    var t=e.target;
+    if(t.id==="tauxAmo"){ try{ localStorage.setItem(TAUX, t.value.trim()); }catch(_){} calculer(); t.value=String(taux()).replace(".",","); return; }
+    if(!t.hasAttribute("data-regl")) return;
+    var k=t.getAttribute("data-regl"), ch=t.getAttribute("data-champ"), g=grille(), cur=ligneGrille(k);
+    g[k]=g[k]||{on:cur.on};
+    g[k][ch] = ch==="on" ? t.checked : t.value.trim();
+    ecrire(GRILLE,g); render();
+  });
+
+  var bar=F.barre({
+    titre:function(){ var parts=[]; if(plan){ if(plan.p.dossier) parts.push(F.slug(plan.p.dossier)); if(plan.p.nom) parts.push(F.slug(plan.p.nom).toUpperCase()); } parts.push("Devis"); return parts.join("_"); },
+    dossier:function(){ return plan && plan.p.dossier; },
+    recharger:function(){ render(); bar.dire(plan?"✓ Plan de traitement rechargé.":"Aucun plan de traitement."); }
+  });
+  render();
+})();
+</script>
+</body>
+</html>

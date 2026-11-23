@@ -3,12 +3,12 @@
    la version en ligne (donc la plus récente) ; sans internet, ou si le réseau ne
    répond pas en 3 secondes, on sert la copie gardée. Aucune donnée de patient ici :
    seuls les fichiers de l'application sont concernés. */
-var CACHE="adia-fiches-v14";
+var CACHE="adia-fiches-v15";
 var FICHIERS=[
   "./","index.html",
   "fiche-intervention.html","plan-de-traitement.html","liaison-prothese.html",
   "passeport-implantaire.html","tracabilite.html",
-  "fiche-omnipratique.html","plan-omnipratique.html","labo-omnipratique.html",
+  "fiche-omnipratique.html","plan-omnipratique.html","labo-omnipratique.html","devis-omnipratique.html",
   "consignes-omnipratique.html","tracabilite-omnipratique.html",
   "fiches-commun.js","fiches-nav.js","references.js",
   "manifest.webmanifest","plan.webmanifest","omni.webmanifest","plan-omni.webmanifest",

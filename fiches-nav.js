@@ -8,6 +8,7 @@
   var OMNI = /omnipratique/i.test(location.pathname) || /[?&]profil=omni\b/.test(location.search);
   var DOCS = OMNI ? [
     ["plan-omnipratique.html","Plan"],
+    ["devis-omnipratique.html","Devis"],
     ["fiche-omnipratique.html","Intervention"],
     ["labo-omnipratique.html","Labo"],
     ["consignes-omnipratique.html","Consignes"],
