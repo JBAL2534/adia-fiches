@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<title>Fiche omnipratique – v1.9</title>
+<title>Fiche omnipratique – v1.10</title>
 <link rel="manifest" href="omni.webmanifest">
 <script src="fiches-nav.js" defer></script>
 <meta name="theme-color" content="#173a63">
@@ -209,7 +209,7 @@
 <div class="page">
   <div class="hdr">
     <div id="entete"></div>
-    <div class="hdr-title">Fiche d'intervention<span id="appver">Omnipratique · v1.9</span></div>
+    <div class="hdr-title">Fiche d'intervention<span id="appver">Omnipratique · v1.10</span></div>
   </div>
 
   <!-- Barre de dictée -->
@@ -998,15 +998,16 @@
   }
   function addImplant(sys, dent){
     implants.push({sys:sys||"NobelActive", dent:dent||"", spec:"", plat:"auto", mua:""});
-    saveImplants(); renderImplants();
+    renderImplants();                                   // la ligne s'affiche d'abord, quoi qu'il arrive ensuite
+    try{ saveImplants(); }catch(e){ try{ console.error("implants", e); }catch(_){} }
     var box=document.getElementById("implantList");
-    if(box.lastChild) flash(box.lastChild.querySelector("input"));
+    if(box.lastChild){ var i=box.lastChild.querySelector("input"); if(i){ flash(i); try{ i.focus(); }catch(e){} } }
   }
   renderImplants();
   // la barre du haut montre le passeport dès qu'un implant est saisi ; le matériel d'implantologie aussi
   var _saveImplants0=saveImplants;
   saveImplants=function(){ _saveImplants0(); majSelonImplants(); };
-  function majSelonImplants(){ try{ if(window.adiaNavPasseport) window.adiaNavPasseport(implants.length>0); }catch(e){} renderMat(); }
+  function majSelonImplants(){ try{ if(window.adiaNavPasseport) window.adiaNavPasseport(implants.length>0); }catch(e){} try{ renderMat(); }catch(e){ try{ console.error("matériel", e); }catch(_){} } }
 
   function renderActes(){
     var box=document.getElementById("acteList"); if(!box) return; box.innerHTML="";
@@ -1157,6 +1158,8 @@
       vide.textContent="Aucun système — cliquez « Modifier la liste » pour en ajouter.";
       box.appendChild(vide);
     }
+    if(sysEdit){ var aide=document.createElement("div"); aide.style.cssText="flex-basis:100%;font-size:13.5px;color:#123b63;background:#eef4fb;border:1px solid #c9d8ea;border-radius:8px;padding:8px 10px";
+      aide.textContent="Réglage de la liste des systèmes : ✕ retire un système. Pour ajouter un implant à la fiche, touchez d'abord « ✓ Terminer »."; box.appendChild(aide); }
     SYSTEMES.forEach(function(sys, i){
       if(sysEdit){
         var chip=document.createElement("span"); chip.className="achip";
@@ -1174,7 +1177,7 @@
       }
     });
     var tog=document.createElement("button"); tog.type="button"; tog.className="addbtn";
-    tog.style.cssText="background:#f4f6f9;color:#1a3e6f;border:1px solid #cbd2dc";
+    tog.style.cssText=sysEdit?"background:#1a7a3a;color:#fff;border:1px solid #1a7a3a":"background:#f4f6f9;color:#1a3e6f;border:1px solid #cbd2dc";
     tog.textContent=sysEdit?"✓ Terminer":"✎ Modifier la liste";
     tog.addEventListener("click", function(){
       sysEdit=!sysEdit;
