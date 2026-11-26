@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<title>Fiche omnipratique – v1.5</title>
+<title>Fiche omnipratique – v1.6</title>
 <link rel="manifest" href="omni.webmanifest">
 <script src="fiches-nav.js" defer></script>
 <meta name="theme-color" content="#173a63">
@@ -209,7 +209,7 @@
 <div class="page">
   <div class="hdr">
     <div id="entete"></div>
-    <div class="hdr-title">Fiche d'intervention<span id="appver">Omnipratique · v1.5</span></div>
+    <div class="hdr-title">Fiche d'intervention<span id="appver">Omnipratique · v1.6</span></div>
   </div>
 
   <!-- Barre de dictée -->
@@ -626,7 +626,7 @@
       try{ sessionStorage.setItem("omni-pre-plan","1"); }catch(e){}
       var nm=adiaApplyPatient(p.nom||"", p.dossier||"");
       if(msg) msg.textContent="Patient repris du plan : "+nm+(p.dossier?" / "+p.dossier:"");
-      setTimeout(function(){ if(window.adiaPreRemplirDepuisPlan) window.adiaPreRemplirDepuisPlan(); }, 1600);
+      setTimeout(function(){ if(window.adiaPreRemplirDepuisPlan) window.adiaPreRemplirDepuisPlan(); if(window.adiaAlertesDuPlan) window.adiaAlertesDuPlan(); }, 1600);
     });
     // À chaque ouverture (depuis le plan, le devis ou un autre document) : le patient du plan suit, sans rien écraser.
     {
@@ -1211,6 +1211,29 @@
     if(inp) inp.addEventListener("keydown", function(e){ if(e.key==="Enter"){ e.preventDefault(); doAdd(); } });
   })();
   renderAlerts();
+  /* Les alertes cochées dans le plan de traitement sont reprises ici, si le plan concerne le même patient.
+     On ne fait qu'ajouter des coches : rien de ce qui est déjà coché dans la fiche n'est retiré. */
+  window.adiaAlertesDuPlan=function(){
+    var o=null; try{ o=JSON.parse(localStorage.getItem("omni_plan_current")||"null"); }catch(e){}
+    if(!o || !o.p) return 0;
+    var dP=String(o.p.dossier||"").trim(), dF=document.getElementById("dossier").value.trim();
+    var nF=(document.getElementById("nom").value+" "+document.getElementById("prenom").value).replace(/\s+/g," ").trim().toLowerCase(), nP=String(o.p.nom||"").replace(/\s+/g," ").trim().toLowerCase();
+    if(dP || dF){ if(dP!==dF) return 0; } else if(!nP || nP!==nF) return 0;
+    var cochees=(o.alertsList||[]).filter(function(a){ return a && o.alerts && o.alerts[a.key]; }).map(function(a){ return String(a.label||"").trim(); }).filter(Boolean);
+    if(!cochees.length) return 0;
+    function norm(t){ return String(t).toLowerCase().replace(/\s+/g," ").trim(); }
+    var ajout=false, ids=[];
+    cochees.forEach(function(lab,i){
+      var it=alertModel.filter(function(x){ return norm(x.label)===norm(lab); })[0];
+      if(!it){ it={id:"alx_"+Date.now()+"_"+i, label:lab}; alertModel.push(it); ajout=true; }
+      ids.push(it.id);
+    });
+    if(ajout){ saveAlerts(); renderAlerts(); }
+    var n=0; ids.forEach(function(id){ var c=document.getElementById(id); if(c && !c.checked){ c.checked=true; n++; } });
+    if(n){ if(typeof save==="function") save(); var m=document.getElementById("importAdiaMsg"); if(m) m.textContent=(m.textContent?m.textContent+" · ":"")+"Alertes reprises du plan : "+cochees.join(", "); }
+    return n;
+  };
+  setTimeout(window.adiaAlertesDuPlan, 1900);
 
   // ---- 4/ PRF : liste modifiable (comme le Matériel) ----
   var PRFKEY="omni-prf-v1", prfEdit=false;

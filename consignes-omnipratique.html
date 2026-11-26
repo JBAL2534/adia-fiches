@@ -167,7 +167,7 @@
         +lignesDe(r).map(function(l){ return '<li contenteditable="true">'+esc(l)+'</li>'; }).join("")+'</ul></div>';
     });
     var alertes=(data.alertes||[]).join(", ");
-    if(/anticoag|antiagr|avk|aod/i.test(alertes)){
+    if(/anticoag|antiagr|avk|aod|eliquis|xarelto|pradaxa|apixaban|rivaroxaban|dabigatran|previscan|coumadine|sintrom|kardegic|plavix|clopidogrel|aspirine/i.test(alertes)){
       h+='<div class="bloc"><h3>Votre traitement anticoagulant</h3><ul data-r="anticoag">'
         +(lire(MODELES).anticoag||["Ne modifiez pas votre traitement sans avis médical.","Si un saignement ne s'arrête pas après 20 minutes de compression, appelez le cabinet."]).map(function(l){ return '<li contenteditable="true">'+esc(l)+'</li>'; }).join("")+'</ul></div>';
     }
