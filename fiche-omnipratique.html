@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<title>Fiche omnipratique – v1.4</title>
+<title>Fiche omnipratique – v1.5</title>
 <link rel="manifest" href="omni.webmanifest">
 <script src="fiches-nav.js" defer></script>
 <meta name="theme-color" content="#173a63">
@@ -209,7 +209,7 @@
 <div class="page">
   <div class="hdr">
     <div id="entete"></div>
-    <div class="hdr-title">Fiche d'intervention<span id="appver">Omnipratique · v1.4</span></div>
+    <div class="hdr-title">Fiche d'intervention<span id="appver">Omnipratique · v1.5</span></div>
   </div>
 
   <!-- Barre de dictée -->
@@ -628,9 +628,9 @@
       if(msg) msg.textContent="Patient repris du plan : "+nm+(p.dossier?" / "+p.dossier:"");
       setTimeout(function(){ if(window.adiaPreRemplirDepuisPlan) window.adiaPreRemplirDepuisPlan(); }, 1600);
     });
-    // Arrivée depuis le bouton « Fiche d'intervention → » du plan : le patient suit, sans rien écraser.
-    if(location.hash==="#plan"){
-      try{ history.replaceState(null,"",location.pathname+location.search); }catch(e){}
+    // À chaque ouverture (depuis le plan, le devis ou un autre document) : le patient du plan suit, sans rien écraser.
+    {
+      if(location.hash==="#plan"){ try{ history.replaceState(null,"",location.pathname+location.search); }catch(e){} }
       setTimeout(function(){
         var p=null; try{ p=(JSON.parse(localStorage.getItem("omni_plan_current")||"null")||{}).p; }catch(e){}
         if(!p || !(p.nom||p.dossier)) return;
