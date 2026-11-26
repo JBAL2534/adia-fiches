@@ -178,7 +178,7 @@
     if(!document.querySelector('meta[name="theme-color"]')){ var m=document.createElement('meta'); m.name='theme-color'; m.content='#173a63'; document.head.appendChild(m); }
     if(!document.querySelector('link[rel="apple-touch-icon"]')){ var a=document.createElement('link'); a.rel='apple-touch-icon'; a.href='icon-192.png'; document.head.appendChild(a); }
   }
-  var PLAN_ADIA_VERSION="v2.1 · 26/11/2026";
+  var PLAN_ADIA_VERSION="v2.2 · 26/11/2026";
   function ensureBadge(){
     if(!document.body) return;
     var v=document.getElementById('adia-plan-ver');
@@ -721,7 +721,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     var cur=etatPlan(), pp=cur.p||{}, ancien=proprio()||num();
     var qui=[pp.nom, pp.dossier?("n° "+pp.dossier):""].filter(Boolean).join(" / ");
     var rempli=!!(qui || Object.keys(cur.teeth||{}).length);
-    if(rempli && !confirm("Commencer un plan vierge pour un nouveau patient ?"+(qui?"\n\nLe plan de "+qui+" quitte l\u2019écran.":""))) return;
+    if(rempli && !confirm("Commencer un plan vierge pour un nouveau patient ?"+(qui?"\n\nLe plan de "+qui+" et sa fiche d\u2019intervention quittent l\u2019écran : tout repart de zéro.":""))) return;
     if(ancien && !DEPUIS_FICHIER){
       var sauve=await ecrire(ancien, snap(), false);
       if(!sauve && rempli && !confirm("Le plan du patient n° "+ancien+" n\u2019a pas pu être enregistré dans son dossier (dossier « docpatient » non choisi ou passerelle éteinte).\n\nContinuer quand même ? Ce plan serait perdu.")) return;
@@ -731,6 +731,8 @@ document.addEventListener('DOMContentLoaded', async function() {
     ["actsList","alertsList","correspondents"].forEach(function(k){ if(cur[k]) vierge[k]=cur[k]; });
     localStorage.setItem(KEYS[0], JSON.stringify(vierge));
     localStorage.removeItem(PROP);
+    /* tout vider : la fiche d'intervention et ce qu'elle transmet aux autres documents repartent de zéro aussi */
+    ["fiche-intervention-v1","fiche-intervention-implants-v1","fiche-intervention-customs-v1","adia-fiches-handoff-v1","adia-srv-proprietaire"].forEach(function(k){ try{ localStorage.removeItem(k); }catch(e){} });
     location.reload();
   };
 
