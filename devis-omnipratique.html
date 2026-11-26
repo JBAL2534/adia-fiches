@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<title>Devis – v1.0</title>
+<title>Devis – v1.1</title>
 <meta name="theme-color" content="#173a63">
 <link rel="icon" href="icon-192.png">
 <script src="fiches-commun.js"></script>
@@ -130,31 +130,43 @@
 
   /* ---------- le plan de traitement ---------- */
   var NOMS={ "ccm":"Couronne céramo-métallique", "ccc":"Couronne céramo-céramique", "ic":"Inlay-core", "inlay":"Inlay-onlay",
-    "bridge":"Bridge", "pap":"Prothèse amovible partielle", "pac":"Prothèse amovible complète", "gouttière":"Gouttière", "facette":"Facette" };
+    "bridge":"Bridge", "pap":"Prothèse amovible partielle", "pac":"Prothèse amovible complète", "gouttière":"Gouttière", "facette":"Facette",
+    "dét":"Détartrage", "surf":"Surfaçage radiculaire", "compo":"Restauration composite", "endo":"Traitement endodontique", "rte":"Reprise de traitement endodontique",
+    "ext":"Avulsion", "imp":"Pose d’implant", "pilier":"Pilier implantaire" };
   function lirePlan(){ var o=null; try{ o=JSON.parse(localStorage.getItem("omni_plan_current")||"null"); }catch(e){} return (o && o.p) ? o : null; }
   var plan=lirePlan();
   function cleCode(c){ return String(c||"").trim().toLowerCase(); }
   function grille(){ return lire(GRILLE); }
-  /* Une ligne de la grille. Sans réglage : seuls les codes de prothèse d'origine vont au devis. */
+  /* Une ligne de la grille. Sans réglage : tous les actes du plan vont au devis ; on décoche ceux qu'on ne veut pas. */
   function ligneGrille(code){
     var k=cleCode(code), g=grille()[k]||{};
-    return { on:("on" in g) ? !!g.on : !!NOMS[k], cotation:g.cotation||"", nature:g.nature||NOMS[k]||"", mat:g.mat||"", panier:g.panier||"",
+    return { on:("on" in g) ? !!g.on : true, cotation:g.cotation||"", nature:g.nature||NOMS[k]||String(code||"").trim(), mat:g.mat||"", panier:g.panier||"",
       hlf:g.hlf||"", hono:g.hono||"", dm:g.dm||"", base:g.base||"" };
   }
-  function codesConnus(){
+  function codesBase(){
     var vus={}, out=[];
     [].concat((plan && plan.actsList)||[], Object.keys(grille()), Object.keys(NOMS)).forEach(function(c){
       c=String(c||"").trim(); var k=cleCode(c); if(!k || vus[k]) return; vus[k]=1; out.push(c);
     });
     return out;
   }
+  /* Les actes notés sur une dent : les codes connus, plus tout ce qui a été tapé à la main (un acte par morceau séparé par + , ; /). */
   function extraire(t){
-    var reste=" "+String(t||"").replace(/[,;+\/]+/g," ").replace(/\s+/g," ")+" ", trouves=[];
-    codesConnus().sort(function(x,y){ return y.length-x.length; }).forEach(function(c){
-      var motif=" "+c.replace(/\s+/g," ").toLowerCase()+" ", i=reste.toLowerCase().indexOf(motif);
-      if(i<0) return; trouves.push(c); reste=reste.slice(0,i)+" "+reste.slice(i+motif.length-1);
+    var connus=codesBase().sort(function(x,y){ return y.length-x.length; }), trouves=[];
+    String(t||"").split(/[,;+\/]+/).forEach(function(morceau){
+      var reste=" "+morceau.replace(/\s+/g," ").trim()+" ";
+      connus.forEach(function(c){
+        var motif=" "+c.replace(/\s+/g," ").toLowerCase()+" ", i=reste.toLowerCase().indexOf(motif);
+        if(i<0) return; trouves.push(c); reste=reste.slice(0,i)+" "+reste.slice(i+motif.length-1);
+      });
+      reste=reste.replace(/\s+/g," ").trim(); if(reste) trouves.push(reste);
     });
     return trouves;
+  }
+  function codesConnus(){
+    var out=codesBase(), vus={}; out.forEach(function(c){ vus[cleCode(c)]=1; });
+    if(plan) Object.keys(plan.teeth||{}).forEach(function(d){ extraire(plan.teeth[d]).forEach(function(c){ var k=cleCode(c); if(!vus[k]){ vus[k]=1; out.push(c); } }); });
+    return out;
   }
   /* Une ligne de devis par dent et par acte retenu. */
   function lignesPlan(){
@@ -226,7 +238,7 @@
     codes.forEach(function(c,i){ h+=ligne(cle+"_"+i+"_"+F.slug(c), "", "", ligneGrille(c), false, true, cle+"|"+i); });
     for(var k=codes.length;k<Math.max(3,codes.length+1);k++) h+=ligne(cle+"_v"+k, "", "", null, false, true, "");
     h+='</table><div class="hint noprint" style="margin:4px 0 0"><label>Ajouter depuis la grille : <select data-alt="'+cle+'" style="font-size:13px;padding:4px 6px"><option value="">— choisir un acte —</option>'
-      +codesConnus().map(function(c){ var g=ligneGrille(c); return '<option value="'+esc(c)+'">'+esc(c)+(g.nature?" — "+esc(g.nature):"")+'</option>'; }).join("")+'</select></label></div>';
+      +codesConnus().map(function(c){ var g=ligneGrille(c); return '<option value="'+esc(c)+'">'+esc(c)+(g.nature && cleCode(g.nature)!==cleCode(c)?" — "+esc(g.nature):"")+'</option>'; }).join("")+'</select></label></div>';
     return h;
   }
 
@@ -234,7 +246,7 @@
     var ouvert=false; try{ ouvert=sessionStorage.getItem("omni-devis-regl-ouvert")==="1"; }catch(e){}
     function inp(k,ch,v,ph,court){ return '<input type="text"'+(court?' class="court"':'')+' data-regl="'+esc(k)+'" data-champ="'+ch+'" value="'+esc(v)+'" placeholder="'+esc(ph||"")+'">'; }
     regl.innerHTML='<details class="regl" id="reglGrille"'+(ouvert?" open":"")+'><summary>⚙ Grille du cabinet : cotations, honoraires, bases de remboursement</summary>'
-      +'<div class="hint" style="margin:6px 0">Cochez les codes du plan qui figurent au devis et saisissez leurs montants, tels qu’ils sont en vigueur. <b>Aucun montant n’est fourni par l’application : c’est vous qui les saisissez et les tenez à jour.</b> '
+      +'<div class="hint" style="margin:6px 0">Tous les actes du plan figurent au devis : décochez ceux qui n’ont pas à y être (soins à tarif opposable, par exemple) et saisissez les montants, tels qu’ils sont en vigueur. <b>Aucun montant n’est fourni par l’application : c’est vous qui les saisissez et les tenez à jour.</b> '
       +'Matériau : 1 à 6 · Panier : 1 = 100 % Santé, 2 = modéré, 3 = libre, 4 = Complémentaire santé solidaire. '
       +'Taux de remboursement de l’Assurance Maladie obligatoire : <input type="text" id="tauxAmo" value="'+esc(String(taux()).replace(".",","))+'" style="width:54px;text-align:right;padding:5px 6px;border:1px solid #b9c4d4;border-radius:6px"> % (à vérifier)</div>'
       +'<div class="defile"><table><tr><th style="width:5%">Devis</th><th style="width:9%">Code du plan</th><th style="width:11%">Cotation</th><th>Nature de l’acte</th><th style="width:6%">Mat.</th><th style="width:6%">Panier</th><th style="width:9%">Hon. limite</th><th style="width:9%">Honoraires</th><th style="width:9%">dont DM</th><th style="width:9%">Base remb.</th></tr>'
@@ -286,9 +298,15 @@
       +'<table class="actes" id="tPropose"><tr>'+ENTETES+'<th style="width:4.5%">Panier (****)</th>'+colonnesMontants(false)+'</tr>';
     var lignes=lignesPlan();
     lignes.forEach(function(l,i){ h+=ligne("p_"+l.dent+"_"+F.slug(l.code), i+1, l.dent, ligneGrille(l.code), true, false, ""); });
-    for(var k=lignes.length;k<Math.max(7,lignes.length+1);k++) h+=ligne("p_libre"+k, "", "", null, true, false, "");
+    var plus=Array.isArray(s.plus)?s.plus:[];
+    plus.forEach(function(c,i){ h+=ligne("plus_"+i+"_"+F.slug(c), lignes.length+i+1, "", ligneGrille(c), true, false, "plus|"+i); });
+    var nb=lignes.length+plus.length;
+    for(var k=nb;k<Math.max(7,nb+1);k++) h+=ligne("p_libre"+k, "", "", null, true, false, "");
     h+='<tr class="total"><td colspan="7" class="num" style="font-weight:400">TOTAL €(des actes envisagés)</td><td class="num" data-total="hono"></td><td class="num" data-total="base"></td><td class="num" data-total="remb"></td><td class="num" data-total="nonremb"></td></tr></table>';
-    if(!lignes.length) h+='<div class="hint noprint">Aucun acte du plan n’est coché « Devis » dans la grille : ouvrez la grille ci-dessus, ou remplissez les lignes à la main.</div>';
+    h+='<div class="hint noprint" style="margin:6px 0 0"><label><b>+ Ajouter un acte au devis :</b> <select data-alt="plus" style="font-size:14px;padding:6px 8px"><option value="">— choisir un acte —</option>'
+      +codesConnus().map(function(c){ var g=ligneGrille(c); return '<option value="'+esc(c)+'">'+esc(c)+(g.nature && cleCode(g.nature)!==cleCode(c)?" — "+esc(g.nature):"")+'</option>'; }).join("")+'</select></label>'
+      +' &nbsp;ou écrivez directement dans une ligne vide. Pour retirer un acte du plan, décochez-le dans la grille ci-dessus.</div>';
+    if(!nb) h+='<div class="hint noprint">Aucun acte du plan ne figure au devis : vérifiez les cases « Devis » de la grille ci-dessus.</div>';
 
     h+='<div class="alt"><p><b>Information alternative thérapeutique -</b> en cas de reste à charge éventuel, une information sur des alternatives thérapeutiques 100% Santé ou à défaut, à entente directe modérée est donnée par le praticien. Sur demande du patient, elle peut donner lieu à une nouvelle proposition de plan de traitement complet, dans un devis distinct.</p>'
       +tableauAlt("alt_sans","Acte sans reste à charge")+'<div style="height:8px"></div>'+tableauAlt("alt_mod","Acte en reste à charge modéré")+'</div>';
