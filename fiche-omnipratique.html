@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<title>Fiche omnipratique – v1.7</title>
+<title>Fiche omnipratique – v1.8</title>
 <link rel="manifest" href="omni.webmanifest">
 <script src="fiches-nav.js" defer></script>
 <meta name="theme-color" content="#173a63">
@@ -209,7 +209,7 @@
 <div class="page">
   <div class="hdr">
     <div id="entete"></div>
-    <div class="hdr-title">Fiche d'intervention<span id="appver">Omnipratique · v1.7</span></div>
+    <div class="hdr-title">Fiche d'intervention<span id="appver">Omnipratique · v1.8</span></div>
   </div>
 
   <!-- Barre de dictée -->
@@ -688,7 +688,7 @@
       {id:"an_art200",label:"Articaïne 1/200 000"},
       {id:"an_sansvaso",label:"Sans vasoconstricteur"},
       {id:"an_contact",label:"Anesthésie de contact"},
-      {id:"an_tronc",label:"Tronculaire"},
+      {id:"an_tronc",label:"Loco-régionale"},
       {id:"an_intralig",label:"Intraligamentaire"}
     ]},
 
@@ -820,6 +820,8 @@
   var matModel;
   try{ matModel = JSON.parse(localStorage.getItem(MSTORE)); }catch(e){}
   if(!Array.isArray(matModel) || !matModel.length) matModel = JSON.parse(JSON.stringify(MAT_DEFAULT));
+  /* « Tronculaire » n'est plus le terme en usage : une liste déjà enregistrée sur le poste est corrigée aussi. */
+  try{ (matModel||[]).forEach(function(g){ (g.items||[]).forEach(function(it){ if(it && it.id==="an_tronc" && /^tronculaire$/i.test(String(it.label||"").trim())) it.label="Loco-régionale"; }); }); }catch(e){}
   function saveMat(){ try{ localStorage.setItem(MSTORE, JSON.stringify(matModel)); }catch(e){} }
   var matEdit=false, _matCtr=0;
   function newMatId(){ _matCtr++; return "matx_"+Date.now().toString(36)+"_"+_matCtr; }
