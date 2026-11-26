@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<title>Fiche omnipratique – v1.6</title>
+<title>Fiche omnipratique – v1.7</title>
 <link rel="manifest" href="omni.webmanifest">
 <script src="fiches-nav.js" defer></script>
 <meta name="theme-color" content="#173a63">
@@ -209,7 +209,7 @@
 <div class="page">
   <div class="hdr">
     <div id="entete"></div>
-    <div class="hdr-title">Fiche d'intervention<span id="appver">Omnipratique · v1.6</span></div>
+    <div class="hdr-title">Fiche d'intervention<span id="appver">Omnipratique · v1.7</span></div>
   </div>
 
   <!-- Barre de dictée -->
@@ -276,6 +276,8 @@
       <input type="text" id="alertNew" placeholder="+ nouvelle alerte" style="flex:1 1 180px">
       <button id="alertAdd" type="button" class="addbtn">Ajouter</button>
     </div>
+    <div class="row" style="margin-top:10px"><label for="allergies">Allergies</label><input type="text" id="allergies" placeholder="allergies connues" style="flex:1 1 220px"></div>
+    <div class="row"><label for="atcd">Antécédents</label><input type="text" id="atcd" placeholder="antécédents médicaux, traitements en cours" style="flex:1 1 220px"></div>
   </section>
 
   <!-- Description de l'intervention -->
@@ -1182,6 +1184,8 @@
   var AL_DEFAULT=[{id:"al_anticoag",label:"Anticoagulant"},{id:"al_biphos",label:"Bisphosphonates"},
     {id:"al_diabete",label:"Diabète"},{id:"al_tabac",label:"Tabac"},{id:"al_atb",label:"Allergie ATB"},
     {id:"al_latex",label:"Latex"},{id:"al_cardio",label:"Cardiopathie"},{id:"al_immuno",label:"Immunodépression"}];
+  function alertesTexte(){ var out=[], a=document.getElementById("allergies"), t=document.getElementById("atcd");
+    if(a && a.value.trim()) out.push("Allergies : "+a.value.trim()); if(t && t.value.trim()) out.push("Antécédents : "+t.value.trim()); return out; }
   var alertModel=null;
   try{ alertModel=JSON.parse(localStorage.getItem(ALSTORE)); }catch(e){}
   if(!alertModel || !alertModel.length) alertModel=JSON.parse(JSON.stringify(AL_DEFAULT));
@@ -1219,6 +1223,9 @@
     var dP=String(o.p.dossier||"").trim(), dF=document.getElementById("dossier").value.trim();
     var nF=(document.getElementById("nom").value+" "+document.getElementById("prenom").value).replace(/\s+/g," ").trim().toLowerCase(), nP=String(o.p.nom||"").replace(/\s+/g," ").trim().toLowerCase();
     if(dP || dF){ if(dP!==dF) return 0; } else if(!nP || nP!==nF) return 0;
+    var nTxt=0; [["allergies","allergies"],["atcd","atcd"]].forEach(function(c){ var el=document.getElementById(c[1]), v=String(o.p[c[0]]||"").trim();
+      if(el && v && !el.value.trim()){ el.value=v; nTxt++; } });
+    if(nTxt){ if(typeof save==="function") save(); var mm=document.getElementById("importAdiaMsg"); if(mm) mm.textContent=(mm.textContent?mm.textContent+" · ":"")+"Allergies et antécédents repris du plan"; }
     var cochees=(o.alertsList||[]).filter(function(a){ return a && o.alerts && o.alerts[a.key]; }).map(function(a){ return String(a.label||"").trim(); }).filter(Boolean);
     if(!cochees.length) return 0;
     function norm(t){ return String(t).toLowerCase().replace(/\s+/g," ").trim(); }
@@ -1396,7 +1403,7 @@
 
     // ---- Alertes médicales : encadré rouge très visible ----
     var RED="0.80 0.10 0.10", REDBG="0.99 0.90 0.90";
-    var _al=alertModel.filter(function(it){ return chk(it.id); }).map(function(it){ return it.label; });
+    var _al=alertModel.filter(function(it){ return chk(it.id); }).map(function(it){ return it.label; }).concat(alertesTexte());
     if(_al.length){
       var _lines=wrap(_al.join("    ·    "), 11, MR-ML-30);
       var _abH=18+_lines.length*14+8;
@@ -1666,7 +1673,7 @@
       nom:v("nom"), prenom:v("prenom"), dossier:v("dossier"), date:v("date"), correspondant:v("correspondant"),
       description:v("description"), avulsion:(document.getElementById("avul_oui")||{}).checked?"oui":((document.getElementById("avul_non")||{}).checked?"non":""),
       profil:"omni",
-      alertes:alertModel.filter(function(it){ var e=document.getElementById(it.id); return e&&e.checked; }).map(function(it){ return it.label; }),
+      alertes:alertModel.filter(function(it){ var e=document.getElementById(it.id); return e&&e.checked; }).map(function(it){ return it.label; }).concat(alertesTexte()),
       actes:actes.map(function(a){ return {disc:a.disc||"", acte:a.acte||"", dent:a.dent||"", note:a.note||""}; }),
       implants:implants.map(function(i){ return {sys:i.sys||"", dent:i.dent||"", spec:i.spec||"", plat:i.plat||"auto", mua:i.mua||""}; }),
       materiel:matModel.map(function(g){ return {titre:g.title||"", type:typeDe(g), items:g.items.filter(function(it){ var e=document.getElementById(it.id); return e&&e.checked; }).map(function(it){ return {id:it.id, label:it.label}; })}; }).filter(function(g){ return g.items.length; }),
@@ -2071,7 +2078,7 @@
     var patient="<table width='100%' cellpadding='0' cellspacing='0' style='border:1px solid #dde3ec;background:#f7f9fc'>"
       +"<tr>"+pcell("PATIENT",(v("nom")+" "+v("prenom")).trim(),1)+pcell("N° DOSSIER",v("dossier"),1)+"</tr>"
       +"<tr>"+pcell("DATE D'INTERVENTION",v("date"),0)+pcell("CORRESPONDANT",v("correspondant"),0)+"</tr></table>";
-    var al=alertModel.filter(function(it){return c(it.id);}).map(function(it){return esc(it.label);});
+    var al=alertModel.filter(function(it){return c(it.id);}).map(function(it){return esc(it.label);}).concat(alertesTexte().map(esc));
     var alerts=al.length ? "<table width='100%' cellpadding='0' cellspacing='0' style='margin:10px 0'><tr>"
       +"<td width='6' bgcolor='"+RED+"'></td>"
       +"<td bgcolor='#fdeaea' style='padding:8px 12px;border:1px solid "+RED+";border-left:none'>"
