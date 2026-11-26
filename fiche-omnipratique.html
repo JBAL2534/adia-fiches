@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<title>Fiche omnipratique – v1.8</title>
+<title>Fiche omnipratique – v1.9</title>
 <link rel="manifest" href="omni.webmanifest">
 <script src="fiches-nav.js" defer></script>
 <meta name="theme-color" content="#173a63">
@@ -209,7 +209,7 @@
 <div class="page">
   <div class="hdr">
     <div id="entete"></div>
-    <div class="hdr-title">Fiche d'intervention<span id="appver">Omnipratique · v1.8</span></div>
+    <div class="hdr-title">Fiche d'intervention<span id="appver">Omnipratique · v1.9</span></div>
   </div>
 
   <!-- Barre de dictée -->
@@ -297,6 +297,7 @@
     <h2>1/ Actes prévus <span style="font-weight:normal;text-transform:none;letter-spacing:0;color:#6b7a90;font-size:12px">— une ligne par acte</span> <button id="discEditBtn" type="button" class="addbtn" style="float:right;font-size:13px;padding:4px 10px">✏️ Modifier les actes</button></h2>
     <div id="acteList"></div>
     <div class="row addrow"><span id="discBtns" style="display:contents"></span></div>
+    <div id="discActes"></div>
     <div id="discEdit"></div>
     <div id="acteDatalists"></div>
   </section>
@@ -1011,7 +1012,7 @@
     var box=document.getElementById("acteList"); if(!box) return; box.innerHTML="";
     if(!actes.length){
       var e=document.createElement("div"); e.id="acteEmpty"; e.style.cssText="color:#888;font-style:italic;font-size:14px;margin:6px 0";
-      e.textContent="Aucun acte. Touchez une discipline ci-dessous pour ajouter une ligne.";
+      e.textContent="Aucun acte. Touchez une discipline ci-dessous, puis l'acte à ajouter.";
       box.appendChild(e); return;
     }
     actes.forEach(function(it,idx){
@@ -1035,19 +1036,32 @@
       box.appendChild(row);
     });
   }
-  function addActe(disc){
-    actes.push({disc:disc, acte:"", dent:"", note:""}); saveActes(); renderActes(); renderMat();
+  function addActe(disc, acte){
+    actes.push({disc:disc, acte:acte||"", dent:"", note:""}); saveActes(); renderActes(); renderMat();
     var box=document.getElementById("acteList");
-    if(box.lastChild){ var i=box.lastChild.querySelector("input"); if(i){ flash(i); i.focus(); } }
+    if(box.lastChild){ var ins=box.lastChild.querySelectorAll("input"), i=ins[acte?1:0]; if(i){ flash(i); i.focus(); } }
   }
-  var discEdit=false;
+  var discEdit=false, discOuverte="";
   function renderDisc(){
     var dl=document.getElementById("acteDatalists"), bt=document.getElementById("discBtns"), ed=document.getElementById("discEdit");
-    if(dl) dl.innerHTML=""; if(bt) bt.innerHTML=""; if(ed) ed.innerHTML="";
+    var pa=document.getElementById("discActes");
+    if(dl) dl.innerHTML=""; if(bt) bt.innerHTML=""; if(ed) ed.innerHTML=""; if(pa) pa.innerHTML="";
+    if(ed && discEdit){ var aide=document.createElement("div"); aide.style.cssText="font-size:13.5px;color:#123b63;background:#eef4fb;border:1px solid #c9d8ea;border-radius:8px;padding:8px 10px;margin:8px 0";
+      aide.textContent="Réglage des listes d'actes : ✕ retire un acte de la liste, un double-clic sur son nom le renomme, « ＋ acte » en ajoute un. Touchez « ✓ Terminer » en haut pour revenir à la saisie."; ed.appendChild(aide); }
     DISCIPLINES.forEach(function(d,i){
       if(dl){ var l=document.createElement("datalist"); l.id="dl_acte_"+slugDisc(d.nom); d.actes.forEach(function(a){ var o=document.createElement("option"); o.value=a; l.appendChild(o); }); dl.appendChild(l); }
       if(bt && !discEdit){ var b=document.createElement("button"); b.type="button"; b.className="addbtn"+(i%2?" alt":""); b.textContent="＋ "+d.nom;
-        b.addEventListener("click", function(){ addActe(d.nom); }); bt.appendChild(b); }
+        if(discOuverte===d.nom) b.style.outline="3px solid #f0b429";
+        b.addEventListener("click", function(){ discOuverte=(discOuverte===d.nom)?"":d.nom; renderDisc(); }); bt.appendChild(b);
+        if(pa && discOuverte===d.nom){
+          var pan=document.createElement("div"); pan.style.cssText="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:8px 0 4px;padding:10px;border:1px solid #c9d8ea;border-radius:10px;background:#f7f9fc";
+          var ti=document.createElement("span"); ti.style.cssText="flex-basis:100%;font-size:13px;color:#667"; ti.textContent=d.nom+" — touchez l'acte à ajouter :"; pan.appendChild(ti);
+          d.actes.forEach(function(a){ var c=document.createElement("button"); c.type="button"; c.className="achip"; c.style.cursor="pointer"; c.textContent=a;
+            c.addEventListener("click", function(){ addActe(d.nom, a); }); pan.appendChild(c); });
+          var au=document.createElement("button"); au.type="button"; au.className="achip"; au.style.cssText="cursor:pointer;border-style:dashed"; au.textContent="＋ autre acte (à écrire)";
+          au.addEventListener("click", function(){ addActe(d.nom); }); pan.appendChild(au);
+          pa.appendChild(pan);
+        } }
       if(ed && discEdit){
         var box=document.createElement("div"); box.className="sub"; box.style.margin="6px 0 10px";
         var cat=document.createElement("span"); cat.className="cat"; cat.textContent=d.nom; box.appendChild(cat);
@@ -1062,7 +1076,7 @@
         var add=document.createElement("button"); add.type="button"; add.className="addbtn"; add.textContent="＋ acte"; add.style.marginLeft="6px";
         add.addEventListener("click", function(){ var v=prompt("Nouvel acte de "+d.nom+" :"); if(v && v.trim()){ d.actes.push(v.trim()); saveDisc(); renderDisc(); } });
         box.appendChild(add);
-        var dg=document.createElement("button"); dg.type="button"; dg.className="addbtn alt"; dg.textContent="✕ discipline"; dg.style.marginLeft="6px";
+        var dg=document.createElement("button"); dg.type="button"; dg.className="addbtn alt"; dg.textContent="🗑 Supprimer toute la discipline « "+d.nom+" »"; dg.style.cssText="display:block;margin:8px 0 0;font-size:13px;padding:6px 10px;background:#b0243a";
         dg.addEventListener("click", function(){ if(confirm("Retirer la discipline « "+d.nom+" » et sa liste d'actes ? Les lignes déjà saisies sont conservées.")){ DISCIPLINES.splice(i,1); saveDisc(); renderDisc(); renderActes(); } });
         box.appendChild(dg);
         ed.appendChild(box);
@@ -1078,7 +1092,7 @@
       wrap.appendChild(ag); wrap.appendChild(rs); wrap.appendChild(info); ed.appendChild(wrap);
     }
   }
-  (function(){ var b=document.getElementById("discEditBtn"); if(b) b.addEventListener("click", function(){ discEdit=!discEdit; b.textContent=discEdit?"✓ Terminer":"✏️ Modifier les actes"; renderDisc(); }); })();
+  (function(){ var b=document.getElementById("discEditBtn"); if(b) b.addEventListener("click", function(){ discEdit=!discEdit; b.textContent=discEdit?"✓ Terminer":"✏️ Modifier les actes"; b.style.background=discEdit?"#1a7a3a":""; renderDisc(); }); })();
   renderDisc();
 
   // ---------- pré-remplir la zone « Intervention » ----------
