@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<title>Fiche omnipratique – v1.10</title>
+<title>Fiche omnipratique – v1.11</title>
 <link rel="manifest" href="omni.webmanifest">
 <script src="fiches-nav.js" defer></script>
 <meta name="theme-color" content="#173a63">
@@ -209,7 +209,7 @@
 <div class="page">
   <div class="hdr">
     <div id="entete"></div>
-    <div class="hdr-title">Fiche d'intervention<span id="appver">Omnipratique · v1.10</span></div>
+    <div class="hdr-title">Fiche d'intervention<span id="appver">Omnipratique · v1.11</span></div>
   </div>
 
   <!-- Barre de dictée -->
@@ -310,6 +310,7 @@
       <label class="chk"><input type="checkbox" id="avul_non"> non</label>
     </div>
     <div id="implantList"></div>
+    <div id="favList" style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:8px 0 2px"></div>
     <div class="row addrow">
       <span id="sysBtns" style="display:contents"></span>
     </div>
@@ -953,7 +954,31 @@
     try{ var a=JSON.parse(localStorage.getItem(SYSKEY)); if(Array.isArray(a)) return a; }catch(e){}
     return ["NobelActive","NobelParallel","NA","TBR","Autre"];
   })();
+  /* ---- Implants favoris : les plus utilisés, ajoutés d'un clic (système + Ø × L / réf + plateforme) ---- */
+  var FAVKEY="omni-implants-favoris-v1";
+  var favoris=(function(){ try{ var a=JSON.parse(localStorage.getItem(FAVKEY)); if(Array.isArray(a)) return a; }catch(e){} return []; })();
+  function saveFavoris(){ try{ localStorage.setItem(FAVKEY, JSON.stringify(favoris)); }catch(e){} }
+  function favIndex(it){ var sp=String(it.spec||"").trim().toLowerCase(); for(var i=0;i<favoris.length;i++){ if(favoris[i].sys===it.sys && String(favoris[i].spec||"").trim().toLowerCase()===sp && (favoris[i].plat||"auto")===(it.plat||"auto")) return i; } return -1; }
+  function renderFavoris(){
+    var box=document.getElementById("favList"); if(!box) return; box.innerHTML="";
+    var t=document.createElement("span"); t.style.cssText="font-size:13px;color:#667;font-weight:600"; box.appendChild(t);
+    if(!favoris.length){ t.style.fontWeight="normal"; t.style.fontStyle="italic"; t.textContent="★ Favoris : aucun pour l'instant. Remplissez une ligne d'implant puis touchez son étoile ☆ pour le retrouver ici."; return; }
+    t.textContent="★ Favoris :";
+    favoris.forEach(function(fv,i){
+      var chip=document.createElement("span"); chip.className="achip"; chip.style.cssText="cursor:pointer;border-color:#e0a800;background:#fff8e1";
+      var lab=document.createElement("span"); lab.textContent="★ "+fv.sys+" · "+fv.spec+((fv.plat && fv.plat!=="auto")?" · "+fv.plat:""); lab.title="Ajouter cet implant à la fiche";
+      lab.addEventListener("click", function(){
+        implants.push({sys:fv.sys, dent:"", spec:fv.spec, plat:fv.plat||"auto", mua:""});
+        renderImplants(); try{ saveImplants(); }catch(e){}
+        var l=document.getElementById("implantList"); if(l.lastChild){ var d=l.lastChild.querySelector("input"); if(d){ flash(d); try{ d.focus(); }catch(e){} } }
+      });
+      var x=document.createElement("button"); x.type="button"; x.className="ax"; x.textContent="✕"; x.title="Retirer des favoris";
+      x.addEventListener("click", function(ev){ ev.preventDefault(); ev.stopPropagation(); if(!confirm("Retirer « "+fv.sys+" · "+fv.spec+" » des favoris ?")) return; favoris.splice(i,1); saveFavoris(); renderImplants(); });
+      chip.appendChild(lab); chip.appendChild(x); box.appendChild(chip);
+    });
+  }
   function renderImplants(){
+    renderFavoris();
     var box=document.getElementById("implantList"); box.innerHTML="";
     if(!implants.length){
       var e=document.createElement("div"); e.id="impEmpty";
@@ -975,7 +1000,7 @@
       dent.placeholder="N° dent"; dent.value=it.dent||"";
       dent.addEventListener("input", function(){ implants[idx].dent=dent.value; saveImplants(); });
       var spec=document.createElement("input"); spec.type="text";
-      spec.placeholder="Ø × L / réf / lot"; spec.value=it.spec||"";
+      spec.placeholder="Ø × L / réf / lot";   /* le lot change à chaque boîte : le mettre en favori avant de l'écrire */ spec.value=it.spec||"";
       spec.addEventListener("input", function(){ implants[idx].spec=spec.value; saveImplants(); });
       // Plateforme prothétique (pilote la fiche de liaison). « auto » = déduite du Ø.
       var plat=document.createElement("select"); plat.className="impsys"; plat.title="Plateforme prothétique";
@@ -992,7 +1017,17 @@
       del.addEventListener("click", function(ev){ ev.preventDefault();
         implants.splice(idx,1); saveImplants(); renderImplants(); });
       row.appendChild(num); row.appendChild(sel); row.appendChild(dent);
-      row.appendChild(spec); row.appendChild(plat); row.appendChild(mua); row.appendChild(del);
+      var fav=document.createElement("button"); fav.type="button"; fav.className="del"; fav.style.color="#e0a800"; fav.style.fontSize="20px";
+      function majFav(){ var on=favIndex(implants[idx])>=0; fav.textContent=on?"★":"☆"; fav.title=on?"Retirer des favoris":"Mettre cet implant en favori"; }
+      majFav();
+      sel.addEventListener("change", majFav); spec.addEventListener("input", majFav); plat.addEventListener("change", majFav);
+      fav.addEventListener("click", function(ev){ ev.preventDefault();
+        var cur=implants[idx], k=favIndex(cur);
+        if(k>=0){ favoris.splice(k,1); }
+        else { if(!String(cur.spec||"").trim()){ alert("Écrivez d'abord le diamètre et la longueur (et la référence si vous voulez) dans la case « Ø × L / réf », sans numéro de lot : le favori les retiendra."); spec.focus(); return; }
+          favoris.push({sys:cur.sys, spec:String(cur.spec).trim(), plat:cur.plat||"auto"}); }
+        saveFavoris(); renderFavoris(); majFav(); });
+      row.appendChild(spec); row.appendChild(plat); row.appendChild(mua); row.appendChild(fav); row.appendChild(del);
       box.appendChild(row);
     });
   }
