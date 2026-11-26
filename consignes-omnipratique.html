@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<title>Consignes au patient – v1.0</title>
+<title>Consignes au patient – v1.1</title>
 <meta name="theme-color" content="#173a63">
 <link rel="icon" href="icon-192.png">
 <script src="fiches-commun.js"></script>
@@ -166,7 +166,8 @@
       h+='<div class="bloc"><h3>'+esc(r.titre)+'</h3><ul data-r="'+r.id+'">'
         +lignesDe(r).map(function(l){ return '<li contenteditable="true">'+esc(l)+'</li>'; }).join("")+'</ul></div>';
     });
-    var alertes=(data.alertes||[]).join(", ");
+    /* Les allergies ne comptent pas : « allergie à l'aspirine » n'est pas un traitement anticoagulant. */
+    var alertes=(data.alertes||[]).filter(function(a){ return !/^\s*allergies?\s*:/i.test(String(a)); }).join(", ");
     if(/anticoag|antiagr|avk|aod|eliquis|xarelto|pradaxa|apixaban|rivaroxaban|dabigatran|previscan|coumadine|sintrom|kardegic|plavix|clopidogrel|aspirine/i.test(alertes)){
       h+='<div class="bloc"><h3>Votre traitement anticoagulant</h3><ul data-r="anticoag">'
         +(lire(MODELES).anticoag||["Ne modifiez pas votre traitement sans avis médical.","Si un saignement ne s'arrête pas après 20 minutes de compression, appelez le cabinet."]).map(function(l){ return '<li contenteditable="true">'+esc(l)+'</li>'; }).join("")+'</ul></div>';
